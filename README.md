@@ -8,7 +8,7 @@ In this repository you are going to find several different generations of the Un
 
 Throughout those generations, you are going to see a common trend:
 - No internal security protection
-- On flat memory space shared by all processes/apps/*
+- One flat memory space shared by all processes/apps/*
 - No "Kernel" per say, only an agglomeration of "cells" or modules together forming the basis of the system -- In our lingo we referred to this as a "VoID Kernel" since there wasn't any big or small monolithic controlling everything.
 
 Our intent back in the day was to build a system which could reload any part of itself, so if you wanted to reload a newer version of the file system drivers you could do so without rebooting.
