@@ -1,0 +1,29 @@
+Licensing
+---------
+
+Most of the tools included in this cvs are developed under the modified
+BSD License, some of the tools may be, now or in the future, developed
+under other licenses.  The licenses are all detailed in their respective files
+under the /licenses directory.  You can determine under which license a 
+specific app/cell is being developed by looking at the README file of the
+particular item under interest.
+
+
+CVS Repository Layout
+---------------------
+
+app		native Uuu applications (cat, dd, ls, ps, .. )
+cell		native Uuu cells (memory manager, file system, etc.)
+devtool		sources to tools working under other OSes (U3l, elf2ubf, ..)
+doc		documentation sources (system api, etc.)
+include		common header files (both Nasm and C headers)
+license		legal licensing information
+system		overall system builder configurations (frustration, etc.)
+
+
+Building a System
+-----------------
+
+To build a particular system, consult the 'README' file located in the
+/system/<system name> directory.  In general, 'make all' will build the various
+components, while 'make install' will install them in a specified directory.

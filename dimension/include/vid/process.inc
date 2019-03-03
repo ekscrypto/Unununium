@@ -1,0 +1,9 @@
+%define process.exec.VID 109
+%define process.get_wd.VID 154
+%define process.set_wd.VID 155
+%define process.get_info_struc.VID 187
+%define process.create.VID 201
+%define process.get_self.VID 203
+%define process.kill_self.VID 206
+%define process.cleanup.VID 207
+%define process.list.VID 209

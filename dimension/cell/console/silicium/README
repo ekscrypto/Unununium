@@ -1,0 +1,6 @@
+CVS Repository Layout
+---------------------
+
+makefile	set of rules to build the display manager, used by gnu-make
+silicium.asm	display manager sources
+stdmodes.inc	list of the supported bios video modes and their properties

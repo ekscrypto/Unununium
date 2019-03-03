@@ -1,0 +1,21 @@
+Elf2Core linker version 0.4.2
+Copyrights (C) 2001, Dave Poirier
+Distributed under the BSD License
+
+
+Compiling:
+
+  make all
+
+
+Installing:
+
+  copy to any directory that is in you PATH variable.
+
+
+Running:
+
+  get help about how to run it by typing: elf2core --help
+
+
+For more information, please consult our website at: http://uuu.wox.org/

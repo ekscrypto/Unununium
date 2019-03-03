@@ -1,0 +1,5 @@
+CVS Repository Layout
+---------------------
+
+lolalife.asm	crash catcher/recovery sources
+makefile	set of rules to build the crash catcher, used by gnu-make

@@ -1,0 +1,5 @@
+CVS Repository Layout
+---------------------
+
+lanthane.asm	logger sources
+makefile	set of rules to build the logger, used by gnu-make

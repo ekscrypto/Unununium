@@ -1,0 +1,9 @@
+%define debug.diable.dword_out.VID 42
+%define debug.diable.dword_out_wait.VID 43
+%define debug.diable.print_regs.VID 48
+%define debug.diable.print_regs_wait.VID 47
+%define debug.diable.print_stack.VID 49
+%define debug.diable.print_stack_wait.VID 50
+%define debug.diable.print_string.VID 45
+%define debug.diable.print_string_wait.VID 46
+%define debug.diable.wait.VID 44

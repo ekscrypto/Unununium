@@ -1,0 +1,15 @@
+
+%macro register_function_call 0.nolist
+  %ifdef _ABSOLUTE_DEBUGGING_
+    push dword __LINE__
+    call _register_function_call
+  %endif
+%endmacro
+ 
+%macro retn_from_registered_function_call 0.nolist
+  %ifdef _ABSOLUTE_DEBUGGING_
+    push dword __LINE__
+    call _retn_from_registered_function_call
+  %endif
+  retn
+%endmacro   

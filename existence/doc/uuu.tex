@@ -1,0 +1,3249 @@
+\documentclass[letterpaper,10pt,openright,twoside,onecolumn]{book}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+\fancyhf{}
+\fancyhead[LE,RO]{\bfseries\thepage}
+\fancyhead[LO]{\bfseries\rightmark}
+\fancyhead[RE]{\bfseries\leftmark}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\headheight}{0.5pt}
+\addtolength{\parskip}{10.0pt}
+\fancypagestyle{plain}{
+    \fancyhead{}
+    \renewcommand{\headrulewidth}{0pt}
+}
+\usepackage{hyperref}
+\begin{document}
+\author{Dave Poirier}
+\title{U3M - Virtual Machine}
+\maketitle
+\tableofcontents
+
+\chapter{Virtual Machine}
+
+Like a real processor, U3M processes code by executing virtual machine instructions. For each instruction, one or more architecture dependant machine instructions (also known as opcodes) are executed by translating the vm machine instruction either in realtime or, for often used vm intructions, by looking up a cache.
+In the following, the term "instruction" refers to machine instructions of U3M.
+
+All instructions except \texttt{set} and \texttt{fset} are conditional. The first parmeter of every instruction (refered to as "c") specifies if the instruction should be executed (c $\neq$ 0) or not (c=0). This parameter is one of the registers \texttt{r0}-\texttt{r6} or \texttt{r31}. If the instruction is intended to be unconditional, c must be \texttt{r31}, which always contains 1, thus processing the instruction independent of any conditions.
+
+Most instructions get 64 bit values as parameters, though most of them can be applied to data types with different sizes, like byte (\texttt{b}, 8 bit), word (\texttt{w}, 16 bit), double word (\texttt{d}, 32 bit) and quad word (\texttt{q}, 64 bit). The possible data sizes are given in parantheses after the name of the instruction (e. g. abs(b, w, d, q)). The mnemonic code of a instruction is the instructions name, followed by the letter for the data size that is to be used, e. g. \texttt{absw} for the absolute value of a given word. The instruction will be applied to the given data size, beginning with lowest byte.
+
+Most arithmetic instructions also have a SIMD equivalent. SIMD instructions allow to apply the instruction to multiple parts of data. Multiple data means that the data given by specifying a register or a pointer to an immediate value is handled as a 64 bit long array of values whose size is specified by the data size's abbreviation appended to the opcode. Thus, \texttt{addmd} will apply the add command to the first and the second double word of the given 64 bit values.
+
+\section{Integer Register Set}
+  \begin{tabular}{@{}l l l@{}}
+   \hline
+    register & access & description \\
+   \hline
+    r0 - r15 & read/write & general purpose registers \\
+    r16 & read-only & current uuu-time \\
+    r17 & read-only & time elapsed since machine started \\
+    r18 & read-only & current executing thread id \\
+    r19 & read-only & number of executed instructions \\
+    r20 & read-only & unique machine id \\
+    r21 & read-only & executing user id \\
+    r22 - 28 & read-only & reserved (0) \\
+    r29 & read-only & value provided as immidate \\
+    r30 & read-only & zero / null \\
+    r31 & read-only & one \\
+   \hline
+  \end{tabular}
+
+\section{Float Register Set}
+  \begin{tabular}{@{}l l l@{}}
+   \hline
+    register & access & description \\
+   \hline
+    f0 - f15 & read/write & general purpose registers \\
+    f16 & read-only & e \\
+    f17 & read-only & pi \\
+    f18 & read-only & sqrt(2) \\
+    f19 & read-only & sqrt(3) \\
+    f20-f29 & read-only & reserved \\
+    f29 & read-only & NaN \\
+    f30 & read-only & 0.0 \\
+    f31 & read-only & 1.0 \\
+   \hline
+  \end{tabular}
+
+\clearpage\section{Arithmetic Instructions}
+\subsection{abs(b,w,d,q) - Absolute}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 004 & absb c, x, y & Absolute value of Lowest Significant Byte \\
+    /3 005 & absw c, x, y & Absolute value of Lowest Significant Word \\
+    /3 006 & absd c, x, y & Absolute value of Lowest Significant Dword \\
+    /3 007 & absq c, x, y & Absolute value of Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = |y|\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Sets 'x' to the absolute value of 'y' if 'c' is not equal
+  to 0.  When a data type smaller than a Qword is specified, only the
+  lowest significant data type is affected.
+
+  \begin{verbatim}
+Code Sample:
+  r0 = 0xFFFFFFFFFFFFFF81 (-127)
+  r1 = 0xFFFFFFFFFFFF8008 (-32760)
+  r2 = 0xFFFFFFFFFFFFFF38 (-200)
+  absb r31, r0, r0
+        r0 is now 0xFFFFFFFFFFFFFF7F (lowest byte = 127)
+  absw r31, r0, r1
+        r0 is now 0xFFFFFFFFFFFF7FF8 (lowest word = 32760)
+  absd r31, r1, r2
+        r1 is now 0xFFFFFFFF000000C8 (lowest dword = 200)
+  absq r31, r3, r2
+        r3 is now 0x00000000000000C8 (200)
+  \end{verbatim}
+
+\newpage\subsection{absm(b,w,d) - Absolute SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 000 & absmb c, x, y & SIMD Absolute value of Bytes \\
+    /3 001 & absmw c, x, y & SIMD Absolute value of Words \\
+    /3 002 & absmd c, x, y & SIMD Absolute value of Dwords \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x[\ldots] = |y[\ldots]|\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Sets the individual byte/word/dword of qword 'x' to the associated
+  individual byte/word/dword absolute values of qword 'y' if 'c' is
+  not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0xFFFFFFFFFFFFFFFF
+  absmb r31, r1, r0
+        r0 is now 0x0101010101010101
+  absmw r31, r2, r0
+        r2 is now 0x0001000100010001
+  absmd r31, r3, r0
+        r3 is now 0x0000000100000001
+  \end{verbatim}
+
+\newpage\subsection{add(b,w,d,q) - Add}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 004 & addb c, x, y, z & Add Lowest Significant Byte \\
+    /4 005 & addw c, x, y, z & Add Lowest Significant Word \\
+    /4 006 & addd c, x, y, z & Add Lowest Significant Dword \\
+    /4 007 & addq c, x, y, z & Add Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y + z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y,z & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Compute the sum of 'y' and 'z' and place the result in 'x' if
+  'c' is not equal to 0.
+  When a data type smaller than a Qword is specified, only the
+  lowest significant data type is affected.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x89ABCDEFFEDCBA98
+  r1 = 0xFEDCBA9889ABCDEF
+  r5 = r6 = 0x0123456789ABCDEF
+  addb r31, r5, r0, r1
+  addb r31, r6, r1, r1
+        r5 is now 0x0123456789ABCD87
+        r6 is now 0x0123456789ABCDDE
+  addw r31, r5, r0, r1
+  addw r31, r6, r1, r1
+        r5 is now 0x0123456789AB8887
+        r6 is now 0x0123456789AB9BDE
+  addd r31, r5, r0, r1
+  addd r31, r6, r1, r1
+        r5 is now 0x0123456788888887
+        r6 is now 0x0123456713579BDE
+  addq r31, r5, r0, r1
+  addq r31, r6, r1, r1
+        r5 is now 0x8888888888888887
+	r6 is now 0xFDB9753113579BDE
+  \end{verbatim}
+\newpage\subsection{addm(b,w,d) - Add SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 000 & addmb c, x, y, z & SIMD Add Bytes \\
+    /4 001 & addmw c, x, y, z & SIMD Add Words \\
+    /4 002 & addmd c, x, y, z & SIMD Add Dwords \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x[\ldots] = y[\ldots] + z[\ldots]\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y,z & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Compute the sum of the individual datatypes of the qword 'y' and the
+  associated datatypes of qword 'z' and places the results in the qword 'x'
+  if 'c' is not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x89ABCDEFFEDCBA98
+  r1 = 0xFEDCBA9889ABCDEF
+  r5 = r6 = 0
+  addmb r31, r5, r0, r1
+  addmb r31, r6, r1, r1
+        r5 is now 0x8787878787878787
+        r6 is now 0xFCB8743012569ADE
+  addmw r31, r5, r0, r1
+  addmw r31, r6, r1, r1
+        r5 is now 0x8887888788878887
+        r6 is now 0xFDB8753013569BDE
+  addmd r31, r5, r0, r1
+  addmd r31, r6, r1, r1
+        r5 is now 0x8888888788888887
+        r6 is now 0xFDB9753013579BDE
+  \end{verbatim}
+\newpage\subsection{dec(b,w,d,q) - Decrement}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 00C & decb c, x, y & Decrement Lowest Significant Byte \\
+    /3 00D & decw c, x, y & Decrement Lowest Significant Word \\
+    /3 00E & decd c, x, y & Decrement Lowest Significant Dword \\
+    /3 00F & decq c, x, y & Decrement Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y - 1\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Decrement the value of 'y' and place the result in 'x' if 'c' is
+  not equal to 0.
+  When a data type smaller than a Qword is specified, only the
+  lowest significant data type is affected.
+
+  \begin{verbatim}
+Code Samples:
+  r1 = 0x0000000000000000
+  decb r31, r0, r1
+        r0 is now 0x00000000000000FF
+  decw r31, r0, r1
+        r0 is now 0x000000000000FFFF
+  decd r31, r0, r1
+        r0 is now 0x00000000FFFFFFFF
+  decq r31, r0, r1
+        r0 is now 0xFFFFFFFFFFFFFFFF
+  \end{verbatim}
+
+\newpage\subsection{decm(b,w,d) - Decrement SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 008 & decmb c, x, y & SIMD Decrement Bytes \\
+    /3 009 & decmw c, x, y & SIMD Decrement Words \\
+    /3 00A & decmd c, x, y & SIMD Decrement Dwords \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x[\ldots] = y[\ldots] - 1\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Decrement the individual datatypes of qword 'y' and place the result in the
+  associated datatypes of qword 'x' if c is not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x0808080808080808
+  r1 = 0x0004000400040004
+  decmb r31, r2, r0
+        r2 is now 0x0707070707070707
+  decmw r31, r0, r1
+        r0 is now 0x0003000300030003
+  decmd r31, r1, r1
+        r1 is now 0x0004000300040003
+  \end{verbatim}
+\newpage\subsection{div(b,w,d,q) - Divide}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 00C & divb c, x, y, z & Divide Lowest Significant Byte \\
+    /4 00D & divw c, x, y, z & Divide Lowest Significant Word \\
+    /4 00E & divd c, x, y, z & Divide Lowest Significant Dword \\
+    /4 00F & divq c, x, y, z & Divide Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y / z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y,z & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Divide the value 'y' by the value 'z' and place the result in 'x' if 'c' is
+  not equal to 0.
+  When a data type smaller than a Qword is specified, only the
+  lowest significant data type is affected.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0xAAAAAAAAAAAAAAAA
+  r1 = 0x0000000000000002
+  divb r31, r2, r0, r1
+        r2 is now 0xAAAAAAAAAAAAAA55
+  divw r31, r3, r0, r1
+        r3 is now 0xAAAAAAAAAAAA5555
+  divd r31, r4, r0, r1
+        r4 is now 0xAAAAAAAA55555555
+  divq r31, r5, r0, r1
+        r5 is now 0x5555555555555555
+  \end{verbatim}
+\newpage\subsection{divm(b,w,d) - Divide SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 008 & divmb c, x, y, z & SIMD Divide Bytes \\
+    /4 009 & divmw c, x, y, z & SIMD Divide Words \\
+    /4 00A & divmd c, x, y, z & SIMD Divide Dwords \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x[\ldots] = y[\ldots] / z[\ldots]\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y,z & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Divide the individual datatypes of qword 'y' by the associated datatypes of
+  qword 'z' and place the result in qword 'x' if 'c' is not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x0808080808080808
+  r1 = 0x0102010201020102
+  r2 = 0x0001000200030004
+  r3 = 0x0402040204020402
+  divmb r31, r4, r0, r1
+        r4 is now 0x0804080408040804
+  divmw r31, r5, r3, r2
+        r5 is now 0x0402020101560100
+  divmd r31, r6, r3, 0x0201020104020402
+        r6 is now 0x0000000200000001
+  \end{verbatim}
+\newpage\subsection{inc(b,w,d,q) - Increment}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 014 & incb c, x, y & Increment Lowest Significant Byte \\
+    /3 015 & incw c, x, y & Increment Lowest Significant Word \\
+    /3 016 & incd c, x, y & Increment Lowest Significant Dword \\
+    /3 017 & incq c, x, y & Increment Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y + 1\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Increment the value 'y' and place the result in 'x' if 'c' is not
+  equal to 0.
+  When a data type smaller than a Qword is specified, only the
+  lowest significant data type is affected.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x0000000000000000
+  r1 = 0x00000000000000FF (255)
+  r2 = 0x0000000000000200 (512)
+  incb r31, r0, r0
+        r0 is now 0x0000000000000001 (1)
+  incw r31, r4, r0
+        r4 is now 0x0000000000000001 (1)
+  incd r31, r1, r1
+        r1 is now 0x0000000000000100 (256)
+  incq r31, r2, r2
+        r2 is now 0x0000000000000201 (513)
+  \end{verbatim}
+\newpage\subsection{incm(b,w,d) - Increment SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 010 & incmb c, x, y & SIMD Increment Bytes \\
+    /3 011 & incmw c, x, y & SIMD Increment Words \\
+    /3 012 & incmd c, x, y & SIMD Increment Dwords \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x[\ldots] = y[\ldots] + 1\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Increment the individual datatypes of qword 'y' and place the result in the 
+  associated datatypes of qword 'x' if 'c' is not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x0000000000000001
+  incmb r31, r1, r0
+        r1 is now 0x0101010101010102
+  incmw r31, r2, r0
+        r2 is now 0x0001000100010002
+  incmd r31, r3, r0
+        r3 is now 0x0000000100000002
+  \end{verbatim}
+\newpage\subsection{mod(b,w,d,q) - Modulo Division}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+    /4 04C & modb c, x, y, z & Modulo Division Lowest Significant Byte \\
+    /4 04D & modw c, x, y, z & Modulo Division Lowest Significant Word \\
+    /4 04E & modd c, x, y, z & Modulo Division Lowest Significant Dword \\
+    /4 04F & modq c, x, y, z & Modulo Division Lowest Significant Qword \\
+   \hline
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y MODULO z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y,z & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Set 'x' to the rest of integer division of 'y' and 'z' if c is not zero.
+  The modulo division is defined as followed:\\
+  $a\: mod\: b=r \Leftrightarrow \exists r:\: a=m\cdot b+r;\; r<b;\; a, b, m, r \in N$
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x0101010101010101
+  r1 = 0x0000000000000007
+  modb r31, r2, r0, r1
+        r2 is now 0x0000000000000001
+  modw r31, r2, r0, r1
+        r2 is now 0x0000000000000005
+  modd r31, r2, r0, r1
+        r2 is now 0x0000000000000001
+  \end{verbatim}
+
+  
+
+\newpage\subsection{modm(b,w,d) - Modulo Division}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+    /4 048 & modmb c, x, y, z & SIMD Modulo Division on Bytes \\
+    /4 049 & modmw c, x, y, z & SIMD Modulo Division on Words \\
+    /4 04A & modmd c, x, y, z & SIMD Modulo Division on Dwords \\
+   \hline
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x[\ldots] = y[\ldots] MODULO z[\ldots]\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y,z & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Divide the individual datatypes of qword 'y' by the associated datatypes of
+  qword 'z' and place the rest of the division in the associated datatypes of qword 'x' if 'c' is not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x0808080808080808
+  r1 = 0x0102030405060708
+  r2 = 0x0001000200030004
+  r3 = 0x0000000200000003
+  modmb r31, r4, r0, r1
+        r4 is now 0x0000020003020100
+  modmw r31, r4, r0, r2
+        r2 is now 0x0000000000010000
+  modmd r31, r4, r0, r3
+        r4 is now 0x0000000100000002
+  \end{verbatim}
+
+\newpage\subsection{mul(b,w,d,q) - Multiply}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 014 & mulb c, x, y, z & Multiply Lowest Significant Byte \\
+    /4 015 & mulw c, x, y, z & Multiply Lowest Significant Word \\
+    /4 016 & muld c, x, y, z & Multiply Lowest Significant Dword \\
+    /4 017 & mulq c, x, y, z & Multiply Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y * z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y,z & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Multiply the value 'y' by the value 'z' and place the result in 'x'
+  if c is not equal to 0.
+  When a data type smaller than a Qword is specified, only the
+  lowest significant data type is affected.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x5555555555555555
+  r1 = 0x0000000000000002 (2)
+  mulb r31, r2, r0, r1
+        r2 is now 0x55555555555555AA
+  mulw r31, r3, r0, r1
+        r3 is now 0x555555555555AAAA
+  muld r31, r4, r0, r1
+        r4 is now 0x55555555AAAAAAAA
+  mulq r31, r5, r0, r1
+        r5 is now 0xAAAAAAAAAAAAAAAA
+  \end{verbatim}
+\newpage\subsection{mulm(b,w,d) - Multiply SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 010 & mulmb c, x, y, z & SIMD Multiply Bytes \\
+    /4 011 & mulmw c, x, y, z & SIMD Multiply Words \\
+    /4 012 & mulmd c, x, y, z & SIMD Multiply Dword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x[\ldots] = y[\ldots] * z[\ldots]\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y,z & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Multiply the individual datatypes in qword 'y' by the associated
+  individual datatypes of qword 'z' and place the result in qword 'x'
+  if 'c' is not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x11FF11FF11FF11FF
+  r1 = 0x0102010201020102
+  r2 = 0x0000000200000001
+  mulmb r31, r3, r0, r1
+        r3 is now 0x11FE11FE11FE11FE
+  mulmw r31, r4, r0, r1
+        r4 is now 0x22FE22FE22FE22FE
+  mulmd r31, r5, r2, r0
+        r5 is now 0x23fe23fe11ff11ff
+  mulmd r31, r7, r2, r1
+	r7 is now 0x0204020401020102
+  \end{verbatim}
+\newpage\subsection{neg(b,w,d,q) - Negate}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 01C & negb c, x, y & Negate Lowest Significant Byte \\
+    /3 01D & negw c, x, y & Negate Lowest Significant Word \\
+    /3 01E & negd c, x, y & Negate Lowest Significant Dword \\
+    /3 01F & negq c, x, y & Negate Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = -y\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Negate the value of 'y' and place it in 'x' if 'c' is not equal
+  to 0.
+  When a data type smaller than a Qword is specified, only the
+  lowest significant data type is affected.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0xFFFFFFFFFFFFFFFF
+  negb r31, r1, r0 
+        r1 is now 0xFFFFFFFFFFFFFF01
+  negw r31, r2, r0
+        r2 is now 0xFFFFFFFFFFFF0001
+  negd r31, r3, r0
+        r3 is now 0xFFFFFFFF00000001
+  negq r31, r4, r0
+        r4 is now 0x0000000000000001
+  \end{verbatim}
+\newpage\subsection{negm(b,w,d) - Negate SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 018 & negmb c, x, y & SIMD Negate Bytes \\
+    /3 019 & negmw c, x, y & SIMD Negate Words \\
+    /3 01A & negmd c, x, y & SIMD Negate Dwords \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x[\ldots] = -y[\ldots]\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y & may be a register (r0-r31, a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Negate the individual datatypes of qword 'y' and place the results
+  in the associated datatypes of qword 'x' if 'c' is not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0xFFFFFFFFFFFFFFFF
+  negmb r31, r1, r0
+        r1 is now 0x0101010101010101
+  negmw r31, r2, r0
+        r2 is now 0x0001000100010001
+  negmd r31, r3, r0
+        r2 is now 0x0000000100000001
+  \end{verbatim}
+\newpage\subsection{sub(b,w,d,q) - Substract}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 01C & subb c, x, y, z & Substract Lowest Significant Byte \\
+    /4 01D & subw c, x, y, z & Substract Lowest Significant Word \\
+    /4 01E & subd c, x, y, z & Substract Lowest Significant Dword \\
+    /4 01F & subq c, x, y, z & Substract Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y - z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y,z & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Substract the value of 'z' from the value of 'y' and place the result
+  in 'x' if 'c' is not equal to 0.
+  When a data type smaller than a Qword is specified, only the
+  lowest significant data type is affected.
+
+  \begin{verbatim}
+  r0 = 0x1122334455667788
+  r1 = 0x0000000000000011
+  r2 = 0x0000000000001111
+  r3 = 0x0000000011111111
+  r4 = 0x1111111111111111
+  subb r31, r5, r0, r1
+        r5 is now 0x1122334455667777
+  subm r31, r6, r0, r2
+        r6 is now 0x1122334455666677
+  subd r31, r7, r0, r3
+        r7 is now 0x1122334444556677
+  subq r31, r8, r0, r4
+        r8 is now 0x0011223344556677
+  \end{verbatim}
+\newpage\subsection{subm(b,w,d) - Substract SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 018 & submb c, x, y, z & SIMD Substract Bytes \\
+    /4 019 & submw c, x, y, z & SIMD Substract Words \\
+    /4 01A & submd c, x, y, z & SIMD Substract Dwords \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x[\ldots] = y[\ldots] - z[\ldots]\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+    y,z & may be a register (r0-r31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Substract the individual datatypes of qword 'z' from the associated individual
+  datatypes of qword 'y' and place the results in qword 'x' if 'c' is not equal
+  to 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = 0x1122334455667788
+  r1 = 0x0201020102010201
+  r2 = 0x0200010002000100
+  r3 = 0x0200000001000000
+  submb r31, r4, r0, r1
+        r4 is now 0x0f21314353657587
+  submw r31, r5, r0, r2
+        r5 is now 0x0f22324453667688
+  submd r31, r6, r0, r3
+        r6 is now 0x0f22334454667788
+  \end{verbatim}
+\clearpage\section{Debugger Control Instructions}
+\subsection{break - Break to Prompt}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /1 000 & break c & Break to Prompt \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow return to debugger prompt\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+
+  When the debugger is enabled, this instruction request a return to the debugger
+  prompt if 'c' is not equal to 0.
+
+  When the debugger is disabled, this instruction does nothing.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = ??
+  r1 = ??
+  break r31
+        breaks to debugger prompt
+  subq r31, r2, r0, r1
+  break r2
+        breaks to debgger prompt if r1 != r0
+  \end{verbatim}
+\newpage\subsection{cbreak - Clear Breakpoint}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /2 020 & cbreak c, x & Clear Breakpoint \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow breakpoint.clear(x)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+   \hline
+  \end{tabular}
+
+  Clear a previously set 'x' breakpoint if 'c' is not equal to 0.  If the debugger
+  is disabled this instruction does nothing.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = ??
+  r1 = ??
+  r2 = some set breakpoint
+  cbreak r31, r2
+        clears breakpoint set in r2
+  subq r31, r3, r0, r1
+  cbreak r3, r2 
+        clears breakpoint set in r2 if r1 != r0
+  \end{verbatim}
+\newpage\subsection{cwatch - Clear Watchpoint}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /2 028 & cwatch c, x & Clear Watchpoint \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow watchpoint.clear(x)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+   \hline
+  \end{tabular}
+
+  Clear a previously set 'x' watchpoint if 'c' is not equal to 0.  If the debugger
+  is disabled this instruction does nothing.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = ??
+  r1 = ??
+  r2 = some set watchpoint
+  cwatch r31, r2
+          clears watchpoint set in r2
+  subq r31, r3, r0, r1
+  cwatch r3, r2
+          clears watchpoint set in r2 if r1 != r0
+  \end{verbatim}
+\newpage\subsection{sbreak - Set Breakpoint}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /2 030 & sbreak c, x & Set Breakpoint \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow breakpoint.set(x)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+   \hline
+  \end{tabular}
+
+  Set a breakpoint 'x' if 'c' is not equal to 0.  If the debugger is disabled this
+  instruction does nothing.
+
+  \begin{verbatim}
+Code Samples
+  r0 = ??
+  r1 = ??
+  r2 = some breakpoint
+  sbreak 31, r2
+        set location in r2 to be a breakpoint
+  subq r31, r3, r0, r1
+  sbreak r3, r2 
+        set location in r2 to be a breakpoint if  r0 != r1
+  \end{verbatim}
+\newpage\subsection{swatch - Set Watchpoint}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /2 038 & swatch c, x & Set Watchpoint \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow watchpoint.set(x)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+   \hline
+  \end{tabular}
+
+  Set a watchpoint 'x' if 'c' is not equal to 0.  If the debugger is disabled this
+  instruction does nothing.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = ??
+  r1 = ??
+  r2 = some watchpoint
+  swatch r31, r2
+        set a watchpoint at location in r2
+  subq r31, r3, r0, r1
+  swatch r3, r2 
+        set a watchpoint at location in r2 if r1 != r0
+  \end{verbatim}
+\newpage\subsection{trace - Control Instruction Trace}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /2 024 & trace c, x & Control Instruction Trace \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow trace.enabled = x\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r31) \\
+   \hline
+  \end{tabular}
+
+  When the debugger is enabled, it is possible to generate a list of all the instructions
+  being executed and their active operands.  Activating this option is done by enabling
+  tracing with a value 'x' of 1 or deactivating it with a value 'x' of 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = ??
+  r1 = ??
+  trace r31, r31
+        enable instruction tracing
+  trace r31, r30
+        disable instruction tracing
+  subq r31, r2, r1, r0
+  trace r2, r31
+        enable instruction tracing if r1 != r0
+  trace r2, r30
+        disable instruction tracing if r1 != r0
+  \end{verbatim}
+\clearpage\section{Exception Control Instructions}
+\subsection{cex - Clear Exception}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /2 010 & cex c, x & Clear Exception \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow exception.clear(x)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+   \hline
+  \end{tabular}
+
+  Used to clear an exception after it has been raised so that it may be raised again
+  in the future.  If the exception is left uncleared, it will not fire again.  The
+  Exception should be cleared only once the cause of the problem has been solved or
+  when it is determined to be safe for another exception to fire.
+
+  Clears exception 'x' if 'c' is not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = ??
+  r1 = ??
+  r2 = some exception
+  cex r31, r2
+        clear the exception in r2 so it can be triggered again
+  subq r31, r3, r1, r0
+  cex r3, r2
+        clear the exception in r2 if r1 != r0
+  \end{verbatim}
+\newpage\subsection{rex - Raise Exception}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /2 018 & rex c, x & Raise Exception \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow exception.raise(x)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (r0-r15) or a pointer \\
+   \hline
+  \end{tabular}
+
+  Raise exception 'x' if 'c' is not equal to 0.
+
+  \begin{verbatim}
+Code Samples
+  r0 = ??
+  r1 = ??
+  r2 = some exception
+  rex r31, r2
+        raise the exception in r2
+  subq r31, r3, r1, r0
+  rex r3, r2
+        raise the exception in r2 if r1 != r0
+  \end{verbatim}
+\newpage\subsection{sex - Set Exception Handler}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 00B & sex c, x, y & Set Exception Handler \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow exception.set_handler(x) = y\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x,y & may be a register (r0-r15), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Sets an exception handler 'y' for exception 'x' if 'c' is not equal to 0.  If no exception
+  handler is specified for an exception type, when it will be raised the thread causing the
+  exception will be killed.
+
+  To remove an exception handler, specify a 'y' of value 0.
+
+  \begin{verbatim}
+Code Samples:
+  r0 = ??
+  r1 = ??
+  r2 = some exception
+  r3 = some handler
+  sex r31, r2, r3
+        set the handler in r3 to be the handler for the
+	exception in r2
+  sex r31, r2, r30
+        unset the hanlder for the exception in r2
+  subq r31, r4, r1, r0
+  sex r4, r2, r3
+        set the hander in r2 to be the handler for
+	the exception in r2 if r1 != r0
+  sex r4, r2, r30
+        unset the handler for the exception in r2 if r1 != r0
+  \end{verbatim}
+\clearpage\section{Floating Point Instructions}
+\subsection{fabs - Absolute}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 07C & fabs c, x, y & Absolute \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = |y|\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Set 'x' to the absolute value of 'y' if 'c' is not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  f0 = -3.14
+  fabs r31, f1, f0
+        f1 is now 3.14
+	
+  \end{verbatim}
+\newpage\subsection{fadd - Add}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 07E & fadd c, x, y, z & Add\\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y + z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y,z & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Store in 'x' the sum of 'y' and 'z' if 'c' is not equal to 0.
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 2.4
+  f1 = 14.5
+  fadd r31, f2, f1, f0
+        f3 is now 16.9
+  \end{verbatim}
+\newpage\subsection{fceil - Ceiling}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 07E & fceil c, x, y & Ceiling\\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = ceil(y)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Set 'x' to the ceiling of 'y' if 'c' is not zero. The ceiling x=ceil(y) is
+  the next higher integer value of y if y$<$x.
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 79.4
+  fceil r31, f1, f0
+        f1 is now 80.0
+  \end{verbatim}
+  
+\newpage\subsection{fcos - Compute Cosine}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 079 & fcos c, x, y & Compute Cosine of radiant\\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = cos(y)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+  \hline
+  \end{tabular}
+
+  Set 'x' to the cosine of 'y' if 'c' is not zero.
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 0
+  fcos r31, f1, f17
+        f1 is now -1.0
+  fcos, r31, f2, f0
+        f2 is now 1.0
+  \end{verbatim}
+\newpage\subsection{fcot - Compute Cotangent}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 07A & fcot c, x, y & Compute Cotangent of radiant\\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = cot(y)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+  \hline
+  \end{tabular}
+
+  Set 'x' to the cotangent of 'y' if 'c' is not zero.
+
+  \begin{verbatim}
+Code Samples:
+  f0 = pi/4
+  f1 = -pi/4
+  fcot r31, f2, f0
+        f2 is now 1.0
+  fcot r31, f3, f1
+        f3 is now -1.0
+  \end{verbatim}
+\newpage\subsection{fcsc - Compute Cosecant}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 07B & fcsc c, x, y & Compute Cosecant of radiant\\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = csc(y)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Set 'x' to the cosecant of 'y' if 'c' is not zero.
+
+  \begin{verbatim}
+Code Samples:
+  f0 = pi/2
+  f1 = 3pi/2
+  fcsc r31, f2, f0
+        f2 is now 1.0
+  fcsc r31, f3, f1
+        f3 is now -1.0
+  \end{verbatim}
+\newpage\subsection{fdiv - Divide}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 07D & fdiv c, x, y, z & Divide \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y / z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y,z & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  Divide the value 'y' by the value 'z' and place the result in 'x' if 'c' is not zero.
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 9.8
+  f1 = 3.2
+  fdiv r31, f2, f0, f1
+        f2 is now 3.0625
+  \end{verbatim}
+\newpage\subsection{fexp - Raise to Exponent}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 07A & fexp c, x, y, z & Raise to Exponent \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y ^ z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y,z & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 2.0
+  f1 = 24.0
+  fexp r31, f2, f0, f1
+        f2 is now 16777216.0
+  \end{verbatim}
+\newpage\subsection{ffloor - Floor}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 07F & ffloor c, x, y & Floor \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = floor(y)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 365.25
+  ffloor r31, f1, f0
+        f1 is now 365.0
+  ffloor r31, f2, f17
+        f2 is now 3.0
+  \end{verbatim}
+\newpage\subsection{finit - Initialize FPU}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /1 03F & finit c & Initialize FPU \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow fpu.init\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  r0 = ??
+  r1 = ??
+  finit r31
+        initialize FPU
+  subq r31, r2, r1, r0
+  finit r2
+        initialize FPU if r1 != r0
+  
+  \end{verbatim}
+\newpage\subsection{frec - Compute Reciprical}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 070 & finv c, x, y & Compute Reciprical \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = 1 / y\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 0.25
+  f1 = 8.0
+  frec r31, f2, f0
+        f2 is now 4.0
+  frec r31, f3, f1
+        f3 is now 0.125
+  \end{verbatim}
+\newpage\subsection{flog(2,10,n,x) - Compute Log}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 074 & flog c, x, y & Compute Log base 10 \\
+    /3 075 & flog2 c, x, y & Compute Log base 2 \\
+    /3 076 & fln c, x, y & Compute Log base natural \\
+    /4 079 & flogy c, x, y, z & Compute Log in base 'z' \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = log(y)\end{displaymath}
+  \begin{displaymath} c \neq 0 \Rightarrow x = log_2 (y)\end{displaymath}
+  \begin{displaymath} c \neq 0 \Rightarrow x = ln(y)\end{displaymath}
+  \begin{displaymath} c \neq 0 \Rightarrow x = log_y (z)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y,z & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 1000.0
+  f1 = 65536.0
+  f2 = 4.0
+  f3 = 16.0
+  flog r31, f4, f0
+        f4 is now 3.0
+  flog2 r31, f5, f1
+        f5 is now 16.0
+  fln r31, f6, f16
+        f6 is now 1.0
+  flogy r31, f7, f2, f3
+        f7 is now 2.0
+  \end{verbatim}
+\newpage\subsection{fmul - Multiply}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 07C & fmul c, x, y, z & Multiply \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y * z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y,z & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 0.125
+  f1 = 12.0
+  fmul r31, f2, f0, f1
+        f2 is now 1.5
+  \end{verbatim}
+\newpage\subsection{finv - Inverse}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 078 & fneg c, x, y & Inverse \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = -y\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 5.6
+  f1 = -2.5
+  finv r31, f2, f0
+        f2 is now -5.6
+  finv r31, f3, f1
+        f3 is now 2.5
+  \end{verbatim}
+\newpage\subsection{fround - Round Up/Down}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 07D & fround c, x, y & Round Up/Down \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = round(y)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 65.78
+  f1 = 365.25
+  fround r31, f2, f0
+        f2 is now 66.0
+  fround r31, f3, f1
+        f3 is now 365.0
+  \end{verbatim}
+\newpage\subsection{fsec - Compute Secant}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 073 & fsec c, x, y & Compute Secant of radiant\\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = sec(y)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a float register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 0.0
+  fsec r31, f1, f0
+        f1 is now 1.0
+  fsec r31, f2, f17
+        f2 is now -1.0
+  \end{verbatim}
+\newpage\subsection{fset(a,na,b,nb,i,ni,z,nz) - Conditional Set}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 068 & fseta x, y, z & Conditional Set 'Above' \\
+    /3 069 & fsetna x, y, z & Conditional Set 'Not Above' \\
+    /3 06A & fsetb x, y, z & Conditional Set 'Below' \\
+    /3 06B & fsetnb x, y, z & Conditional Set 'Not Below' \\
+    /4 078 & fsete x, y, z, b & Conditional Set 'Equal' \\
+    /4 07B & fsetne x, y, z, b & Conditional Set 'Not Equal' \\
+    /3 06C & fseti x, y & Conditional Set 'Positive Infinite' \\
+    /3 06D & fsetni x, y & Conditional Set 'Negative Infinite' \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} (fseta)\ y > z \Rightarrow x = 1\ |\ x = 0\end{displaymath}
+  \begin{displaymath} (fsetna)\ y \leq z \Rightarrow x = 1\ |\ x = 0\end{displaymath}
+  \begin{displaymath} (fsetb)\ y < z \Rightarrow x = 1\ |\ x = 0\end{displaymath}
+  \begin{displaymath} (fsetnb)\ y \geq z \Rightarrow x = 1\ |\ x = 0\end{displaymath}
+  \begin{displaymath} (fsete)\ y = z\pm b \Rightarrow x = 1\ |\ x = 0\end{displaymath}
+  \begin{displaymath} (fsetne)\ y \neq z\pm b \Rightarrow x = 1\ |\ x = 0\end{displaymath}
+  \begin{displaymath} (fseti)\ y = +\infty \Rightarrow x = 1\ |\ x = 0\end{displaymath}
+  \begin{displaymath} (fsetni)\ y = -\infty \Rightarrow x = 1\ |\ x = 0\end{displaymath}
+  \begin{displaymath} (fsetz)\ y = +0 \Rightarrow x = 1\ |\ x = 0\end{displaymath}
+  \begin{displaymath} (fsetnz)\ y = -0 \Rightarrow x = 1\ |\ x = 0\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    x & must be a register (r0-r15) or a pointer \\
+    y,z,b & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{fsin - Compute Sine}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 071 & fsin c, x, y & Compute Sine of radiant\\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = sin(y)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 0.0
+  f1 = pi/2
+  fsin r31, f2, f0
+        f2 is now 1.0
+  fsin r31, f3, f1
+        f3 is now 0.0
+  \end{verbatim}
+\newpage\subsection{fsqrt - Square Root}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 077 & fsqrt c, x, y & Compute Square Root\\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = sqrt(y)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 30.25
+  fsqrt r31, f1, f0
+        f1 is now 5.5
+  \end{verbatim}
+\newpage\subsection{fsub - Substract}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 07F & fsub c, x, y, z & Substract \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y - z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (f0-f15) or a pointer \\
+    y,z & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 387.66
+  f1 = 286.25
+  fsub r31, f2, f0, f1
+        f2 is now 101.41
+  \end{verbatim}
+\newpage\subsection{ftan - Compute Tangent}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 072 & ftan c, x, y & Compute Tangent of radiant\\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = tan(y)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+    x & must be a register (f0-f15) or a pointer \\
+    y & may be a float register (f0-f31), a pointer or an immediate \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+Code Samples:
+  f0 = 0
+  f1 = pi/4
+  ftan r31, f2, f0
+        f0 is now 0.0
+  ftan r31, f3, f1
+        f3 is now 1.0
+  \end{verbatim}
+\clearpage\section{Garbage Collection Instructions}
+\subsection{enter - Enter Context}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /1 002 & enter c & Enter Context \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow context.enter\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+
+  \begin{verbatim}
+  \end{verbatim}
+\subsection{leave - Leave Context}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /1 003 & leave c & Enter Context \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow context.leave\end{displaymath}
+
+  \begin{verbatim}
+  \end{verbatim}
+
+\clearpage\section{Boolean Logic Instructions}
+\subsection{and(b,w,d,q) - Bitwise AND}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 020 & andb c, x, y, z & Bitwise AND on Byte \\
+    /4 021 & andw c, x, y, z & Bitwise AND on Word \\
+    /4 022 & andd c, x, y, z & Bitwise AND on Dword \\
+    /4 023 & andq c, x, y, z & Bitwise AND on Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x.bits = y.bits AND z.bits\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{land(b,w,d,q) - Logical AND}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 038 & landb c, x, y, z & Logical AND on Byte \\
+    /4 039 & landw c, x, y, z & Logical AND on Word \\
+    /4 03A & landd c, x, y, z & Logical AND on Dword \\
+    /4 03B & landq c, x, y, z & Logical AND on Qword\\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y AND z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{lor(b,w,d,q) - Logical OR}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 03C & lorb c, x, y, z & Logical OR on Byte \\
+    /4 03D & lorw c, x, y, z & Logical OR on Word \\
+    /4 03E & lord c, x, y, z & Logical OR on Dword \\
+    /4 03F & lorq c, x, y, z & Logical OR on Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y OR z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{lxor(b,w,d,q) - Logical XOR}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 040 & lxorb c, x, y, z & Logical XOR on Byte \\
+    /4 041 & lxorw c, x, y, z & Logical XOR on Word \\
+    /4 042 & lxord c, x, y, z & Logical XOR on Dword \\
+    /4 043 & lxorq c, x, y, z & Logical XOR on Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x = y XOR z\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+
+\newpage\subsection{nand(b,w,d,q) - Bitwise NAND}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 024 & nandb c, x, y, z & Bitwise NAND on Byte\\
+    /4 025 & nandw c, x, y, z & Bitwise NAND on Word \\
+    /4 026 & nandd c, x, y, z & Bitwise NAND on Dword \\
+    /4 027 & nandq c, x, y, z & Bitwise NAND on Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x.bits = NOT(y.bits AND z.bits)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{nor(b,w,d,q) - Bitwise NOR}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 02C & norb c, x, y, z & Bitwise NOR on Byte \\
+    /4 02D & norw c, x, y, z & Bitwise NOR on Word \\
+    /4 02E & nord c, x, y, z & Bitwise NOR on Dword \\
+    /4 02F & norq c, x, y, z & Bitwise NOR on Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x.bits = NOT(y.bits OR z.bits)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{not(b,w,d,q) - Bitwise NOT}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 020 & notb c, x, y & Bitwise NOT on Byte \\
+    /3 021 & notw c, x, y & Bitwise NOT on Word \\
+    /3 022 & notd c, x, y & Bitwise NOT on Dword \\
+    /3 023 & notq c, x, y & Bitwise NOT on Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x.bits = NOT( y.bits )\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{nxor(b,w,d,q) - Bitwise NXOR}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 034 & nxorb c, x, y, z & Bitwise NXOR on Byte \\
+    /4 035 & nxorw c, x, y, z & Bitwise NXOR on Word \\
+    /4 036 & nxord c, x, y, z & Bitwise NXOR on Dword \\
+    /4 037 & nxorq c, x, y, z & Bitwise NXOR on Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x.bits = NOT(y.bits XOR z.bits)\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{or(b,w,d,q) - Bitwise OR}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 028 & orb c, x, y, z & Bitwise OR on Byte \\
+    /4 029 & orw c, x, y, z & Bitwise OR on Word \\
+    /4 02A & ord c, x, y, z & Bitwise OR on Dword \\
+    /4 02B & orq c, x, y, z & Bitwise OR on Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x.bits = y.bits OR z.bits \end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{xor(b,w,d,q) - Bitwise XOR}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 030 & xorb c, x, y, z & Bitwise XOR on Byte \\
+    /4 031 & xorw c, x, y, z & Bitwise XOR on Word \\
+    /4 032 & xord c, x, y, z & Bitwise XOR on Dword \\
+    /4 033 & xorq c, x, y, z & Bitwise XOR on Qword \\
+   \hline
+  \end{tabular}
+
+  \begin{displaymath} c \neq 0 \Rightarrow x.bits = y.bits XOR z.bits\end{displaymath}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\clearpage\section{Memory Control Instructions}
+\subsection{alloc - Allocate Memory}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{free - Free Memory}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\clearpage\section{IO Devices Instructions}
+\subsection{ded - Declare Device}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{udd - UnDeclare Device}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{inp(b,w,d,q) - Input from I/O Port}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{inps(b,w,d,q) - Input Sequence from I/O Port}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{outp(b,w,d,q) - Output to I/O Port}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{outps(b,w,d,q) - Output Sequence to I/O Port}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\clearpage\section{Petri Net Control Instructions}
+\subsection{dep - Declare Place}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{det - Declare Transition}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{udp - UnDeclare Place}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{udt - UnDeclare Transition}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{gvid - Get VID}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{svid - Set VID}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\clearpage\section{Security Control Instructions}
+\subsection{dropio - Drop Access to I/O Area}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{dropmem - Drop Access to Memory}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{identify - Identify as User/Password}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{gainio - Gain Access to I/O Area}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{gainmem - Gain Access to Memory}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\clearpage\section{Thread Control Instructions}
+\subsection{csig - Condition Signal}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{cwait - Condition Wait}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{exit - Terminate Thread}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{join - Join Thread}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{kill - Kill Thread}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{prio - Set Priority}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{rtsplit - Create Realtime Thread}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{sal - Semaphore Acquire Lock}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{sinit - Semaphore Init}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{sleep - Sleep Thread}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{split - Create New Thread}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{srl - Semaphore Release Lock}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{stl - Semaphore Try-Acquire Lock}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{wake - Wake Thread}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{yield - Yield Control}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\clearpage\section{Other Instructions}
+\subsection{conv(b,w,d,q,g,f,c,u)(b,w,d,q,f,g,c,u) - Convert Datatype}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{convm(b,w,d)(b,w,d) - Convert Datatype SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{convs(b,w,d,q,f)(b,w,d,q,f) - Convert Signed Datatype}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{convsm(b,w,d)(b,w,d) - Convert Signed Datatype SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{jump - Jump}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{rol(b,w,d,q) - Rotate Left}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{rolm(b,w,d) - Rotate Left SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{ror(b,w,d,q) - Rotate Right}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{rorm(b,w,d) - Rotate Right SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{set(a,b,e,g,l,o,p,s,z)(b,w,d,q) - Conditional Set}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{shr(b,w,d,q) - Shift Right}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{shrm(b,w,d,q) - Shift Right SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+\newpage\subsection{shl(b,w,d,q) - Shift Left}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{shlm(b,w,d,q) - Shift Left SIMD}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{sto(b,w,d,q) - Store}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 030 & stob c, x, y & Store Lowest Significant Byte \\
+    /3 031 & stow c, x, y & Store Lowest Significant Word \\
+    /3 032 & stod c, x, y & Store Lowest Significant Dword \\
+    /3 033 & stoq c, x, y & Store Qword \\
+   \hline
+  \end{tabular}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{stof - Store Float}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 013 & stof c, x, y & Store Float \\
+   \hline
+  \end{tabular}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    
+   \hline
+  \end{tabular}
+
+\newpage\subsection{stos(b,w,d,q,f,u) - Store}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /4 044 & stosb c, x, y & Store Sequence of Bytes \\
+    /4 045 & stosw c, x, y & Store Sequence of Words \\
+    /4 046 & stosd c, x, y & Store Sequence of Dwords \\
+    /4 047 & stosq c, x, y & Store Sequence of Qwords \\
+   \hline
+  \end{tabular}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{version - Virtual Machine Version Information}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /1 001 & version c & Get Version Information \\
+   \hline
+  \end{tabular}
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\newpage\subsection{xchg(b,w,d,q,f,u) - Exchange}
+  \begin{tabular}{|l|l|l|}
+   \hline
+    encoding & syntax & description \\
+   \hline
+    /3 028 & xchgb c, x, y & Exchange Lowest Significant Byte \\
+    /3 029 & xchgw c, x, y & Exchange Lowest Significant Word \\
+    /3 02A & xchgd c, x, y & Exchange Lowest Significant Dword \\
+    /3 02B & xchgq c, x, y & Exchange Qword \\
+   \hline
+  \end{tabular}
+
+  \flushleft
+  \begin{tabular}{|l|l|}
+   \hline
+    operand & restriction \\
+   \hline
+    c & must be a register (r0-r6,r31) \\
+   \hline
+  \end{tabular}
+  \begin{verbatim}
+  \end{verbatim}
+
+\appendix
+
+\newlength{\icol}
+\setlength{\icol}{0.2\textwidth}
+\newlength{\ncol}
+\setlength{\ncol}{0.05\textwidth}
+
+\chapter{Instruction Map}
+\section{4 Operand Intructions}
+  \begin{tabbing}
+    \makebox[\ncol]{00\hfill} \= \makebox[\icol]{addmb\hfill}	\=
+    \makebox[\ncol]{01\hfill} \= \makebox[\icol]{addmw\hfill}	\=
+    \makebox[\ncol]{02\hfill} \= \makebox[\icol]{addmd\hfill}	\=
+    \makebox[\ncol]{03\hfill} \= \makebox[\icol]{esc 3ops\hfill}\\
+    04 \> addb	\> 05 \> addw	\> 06 \> addd	\> 07 \> addq	\\
+    08 \> divmb	\> 09 \> divmw	\> 0A \> divmd	\> 0B \> 	\\
+    0C \> divb	\> 0D \> divw	\> 0E \> divd	\> 0F \> divq	\\
+    \\
+    10 \> mulmb	\> 11 \> mulmw	\> 12 \> mulmd	\> 13 \> 	\\
+    14 \> mulb	\> 15 \> mulw	\> 16 \> muld	\> 17 \> mulq	\\
+    18 \> submb	\> 19 \> submw	\> 1A \> submd	\> 1B \> 	\\
+    1C \> subb	\> 1D \> subw	\> 1E \> subd	\> 1F \> subq	\\
+    \\
+    20 \> andb	\> 21 \> andw	\> 22 \> andd	\> 23 \> andq	\\
+    24 \> nandb	\> 25 \> nandw	\> 26 \> nandd	\> 27 \> nandq	\\
+    28 \> orb	\> 29 \> orw	\> 2A \> ord	\> 2B \> orq	\\
+    2C \> norb	\> 2D \> norw	\> 2E \> nord	\> 2F \> norq	\\
+    \\
+    30 \> xorb	\> 31 \> xorw	\> 32 \> xord	\> 33 \> xorq	\\
+    34 \> nxorb	\> 35 \> nxorw	\> 36 \> nxord	\> 37 \> nxorq	\\
+    38 \> landb	\> 39 \> landw	\> 3A \> landd	\> 3B \> landq	\\
+    3C \> lorb	\> 3D \> lorw	\> 3E \> lord	\> 3F \> lorq	\\
+    \\
+    40 \> lxorb	\> 41 \> lxorw	\> 42 \> lxord	\> 43 \> lxorq	\\
+    44 \> stosb	\> 45 \> stosw	\> 46 \> stosd	\> 47 \> stosq	\\
+    48 \> modmb	\> 49 \> modmw	\> 4A \> modmd	\> 4B \> 	\\
+    4C \> modb	\> 4D \> modw	\> 4E \> modd	\> 4F \> modq	\\
+    \\
+    50 \>	\> 51 \> 	\> 52 \> 	\> 53 \> 	\\
+    54 \>	\> 55 \> 	\> 56 \> 	\> 57 \> 	\\
+    58 \>	\> 59 \> 	\> 5A \> 	\> 5B \> 	\\
+    5C \>	\> 5D \> 	\> 5E \> 	\> 5F \> 	\\
+    \\
+    60 \>	\> 61 \> 	\> 62 \> 	\> 63 \> 	\\
+    64 \>	\> 65 \> 	\> 66 \> 	\> 67 \> 	\\
+    68 \>	\> 69 \> 	\> 6A \> 	\> 6B \> 	\\
+    6C \>	\> 6D \> 	\> 6E \> 	\> 6F \> 	\\
+    \\
+    70 \>	\> 71 \> 	\> 72 \>	\> 73 \> 	\\
+    74 \>	\> 75 \> 	\> 76 \>	\> 77 \> 	\\
+    78 \> fsete	\> 79 \> flogy	\> 7A \> fexp	\> 7B \> fsetne	\\
+    7C \> fmul	\> 7D \> fdiv	\> 7E \> fadd	\> 7F \> fsub	\\
+  \end{tabbing}
+
+\newpage\section{3 Operand Instructions}
+  \begin{tabbing}
+    \makebox[\ncol]{00\hfill} \= \makebox[\icol]{absmb\hfill}	\=
+    \makebox[\ncol]{01\hfill} \= \makebox[\icol]{absmw\hfill}	\=
+    \makebox[\ncol]{02\hfill} \= \makebox[\icol]{absmd\hfill}	\=
+    \makebox[\ncol]{03\hfill} \= \makebox[\icol]{esc 2ops\hfill}\\
+    04 \> absb	\> 05 \> absw	\> 06 \> absd	\> 07 \> absq	\\
+    08 \> decmb	\> 09 \> decmw	\> 0A \> decmd	\> 0B \> sex	\\
+    0C \> decb	\> 0D \> decw	\> 0E \> decd	\> 0F \> decq	\\
+    \\
+    10 \> incmb	\> 11 \> incmw	\> 12 \> incmd	\> 13 \> stof	\\
+    14 \> incb	\> 15 \> incw	\> 16 \> incd	\> 17 \> incq	\\
+    18 \> negmb	\> 19 \> negmw	\> 1A \> negmd	\> 1B \> stou	\\
+    1C \> negb	\> 1D \> negw	\> 1E \> negd	\> 1F \> negq	\\
+    \\
+    20 \> notb	\> 21 \> notw	\> 22 \> notd	\> 23 \> notq	\\
+    24 \> lnotb	\> 25 \> lnotw	\> 26 \> lnotd	\> 27 \> lnotq	\\
+    28 \> xchgb	\> 29 \> xchgw	\> 2A \> xchgd	\> 2B \> xchdq	\\
+    2C \> 	\> 2D \> 	\> 2E \> 	\> 2F \> 	\\
+    \\
+    30 \> stob	\> 31 \> stow	\> 32 \> stod	\> 33 \> stoq	\\
+    34 \> 	\> 35 \> 	\> 36 \> 	\> 37 \> 	\\
+    38 \> 	\> 39 \> 	\> 3A \> 	\> 3B \> 	\\
+    3C \> 	\> 3D \> 	\> 3E \> 	\> 3F \> 	\\
+    \\
+    40 \> setba	\> 41 \> setwa	\> 42 \> setda	\> 43 \> setqa	\\
+    44 \> setbna\> 45 \> setwna	\> 46 \> setdna	\> 47 \> setnqa	\\
+    48 \> setbb	\> 49 \> setwb	\> 4A \> setdb	\> 4B \> setqb	\\
+    4C \> setbnb\> 4D \> setwnb	\> 4E \> setdnb	\> 4F \> setqnb	\\
+    \\
+    50 \> setbz	\> 51 \> setwz	\> 52 \> setdz	\> 53 \> setqz	\\
+    54 \> setbnz\> 55 \> setwnz	\> 56 \> setdnz	\> 57 \> setqnz	\\
+    58 \> setbp	\> 59 \> setwp	\> 5A \> setdp	\> 5B \> setqp	\\
+    5C \> 	\> 5D \> 	\> 5E \> 	\> 5F \> 	\\
+    \\
+    60 \> 	\> 61 \> 	\> 62 \> 	\> 63 \> 	\\
+    64 \> 	\> 65 \> 	\> 66 \> 	\> 67 \> 	\\
+    68 \> fseta	\> 69 \> fsetna	\> 6A \> fsetb	\> 6B \> fsetnb	\\
+    6C \> fseti	\> 6D \> fsetni	\> 6E \> 	\> 6F \> 	\\
+    \\
+    70 \> finv	\> 71 \> fsin	\> 72 \> ftan	\> 73 \> fsec	\\
+    74 \> flog	\> 75 \> flog2	\> 76 \> fln	\> 77 \> fsqrt	\\
+    78 \> fneg	\> 79 \> fcos	\> 7A \> fcot	\> 7B \> fcsc	\\
+    7C \> fabs	\> 7D \> fround	\> 7E \> fceil	\> 7F \> ffloor	\\
+  \end{tabbing}
+
+\newpage\section{2 Operand Instructions}
+  \begin{tabbing}
+    \makebox[\ncol]{00\hfill} \= \makebox[\icol]{\hfill}	\=
+    \makebox[\ncol]{01\hfill} \= \makebox[\icol]{\hfill}	\=
+    \makebox[\ncol]{02\hfill} \= \makebox[\icol]{\hfill}	\=
+    \makebox[\ncol]{03\hfill} \= \makebox[\icol]{esc 1op\hfill}	\\
+    \\
+    04 \> 	\> 05 \> 	\> 06 \> 	\> 07 \> 	\\
+    08 \> 	\> 09 \> 	\> 0A \> 	\> 0B \> 	\\
+    0C \> 	\> 0D \> 	\> 0E \> 	\> 0F \> 	\\
+    \\
+    10 \> cex 	\> 11 \> 	\> 12 \> 	\> 13 \> 	\\
+    14 \> 	\> 15 \> 	\> 16 \> 	\> 17 \> 	\\
+    18 \> rex	\> 19 \> 	\> 1A \> 	\> 1B \> 	\\
+    1C \> 	\> 1D \> 	\> 1E \> 	\> 1F \> 	\\
+    \\
+    20 \>cbreak	\> 21 \> 	\> 22 \> 	\> 23 \> 	\\
+    24 \> trace	\> 25 \> 	\> 26 \> 	\> 27 \> 	\\
+    28 \>cwatch	\> 29 \> 	\> 2A \> 	\> 2B \> 	\\
+    2C \>	\> 2D \> 	\> 2E \> 	\> 2F \> 	\\
+    \\
+    30 \>sbreak	\> 31 \> 	\> 32 \> 	\> 33 \> 	\\
+    34 \> 	\> 35 \> 	\> 36 \> 	\> 37 \> 	\\
+    38 \>swatch	\> 39 \> 	\> 3A \> 	\> 3B \> 	\\
+    3C \> 	\> 3D \> 	\> 3E \> 	\> 3F \> 	\\
+    \\
+    40 \> 	\> 41 \> 	\> 42 \> 	\> 43 \> 	\\
+    44 \> 	\> 45 \> 	\> 46 \> 	\> 47 \> 	\\
+    48 \> 	\> 49 \> 	\> 4A \> 	\> 4B \> 	\\
+    4C \> 	\> 4D \> 	\> 4E \> 	\> 4F \> 	\\
+    \\
+    50 \> 	\> 51 \> 	\> 52 \> 	\> 53 \> 	\\
+    54 \> 	\> 55 \> 	\> 56 \> 	\> 57 \> 	\\
+    58 \> 	\> 59 \> 	\> 5A \> 	\> 5B \> 	\\
+    5C \> 	\> 5D \> 	\> 5E \> 	\> 5F \> 	\\
+    \\
+    60 \> 	\> 61 \> 	\> 62 \> 	\> 63 \> 	\\
+    64 \> 	\> 65 \> 	\> 66 \> 	\> 67 \> 	\\
+    68 \> 	\> 69 \> 	\> 6A \> 	\> 6B \> 	\\
+    6C \> 	\> 6D \> 	\> 6E \> 	\> 6F \> 	\\
+    \\
+    70 \> 	\> 71 \> 	\> 72 \> 	\> 73 \> 	\\
+    74 \> 	\> 75 \> 	\> 76 \> 	\> 77 \> 	\\
+    78 \> 	\> 79 \> 	\> 7A \> 	\> 7B \> 	\\
+    7C \> 	\> 7D \> 	\> 7E \> 	\> 7F \> 	\\
+  \end{tabbing}
+
+\newpage\section{1 Operand Instructions}
+  \begin{tabbing}
+    \makebox[\ncol]{00\hfill} \= \makebox[\icol]{break\hfill}	\=
+    \makebox[\ncol]{01\hfill} \= \makebox[\icol]{version\hfill}	\=
+    \makebox[\ncol]{02\hfill} \= \makebox[\icol]{enter\hfill}	\=
+    \makebox[\ncol]{03\hfill} \= \makebox[\icol]{leave\hfill}	\\
+    \\
+    04 \> 	\> 05 \> 	\> 06 \> 	\> 07 \> 	\\
+    08 \> 	\> 09 \> 	\> 0A \> 	\> 0B \> 	\\
+    0C \> 	\> 0D \> 	\> 0E \> 	\> 0F \> 	\\
+    \\
+    10 \> 	\> 11 \> 	\> 12 \> 	\> 13 \> 	\\
+    14 \> 	\> 15 \> 	\> 16 \> 	\> 17 \> 	\\
+    18 \> 	\> 19 \> 	\> 1A \> 	\> 1B \> 	\\
+    1C \> 	\> 1D \> 	\> 1E \> 	\> 1F \> 	\\
+    \\
+    20 \> 	\> 21 \> 	\> 22 \> 	\> 23 \> 	\\
+    24 \> 	\> 25 \> 	\> 26 \> 	\> 27 \> 	\\
+    28 \> 	\> 29 \> 	\> 2A \> 	\> 2B \> 	\\
+    2C \> 	\> 2D \> 	\> 2E \> 	\> 2F \> 	\\
+    \\
+    30 \> 	\> 31 \> 	\> 32 \> 	\> 33 \> 	\\
+    34 \> 	\> 35 \> 	\> 36 \> 	\> 37 \> 	\\
+    38 \> 	\> 39 \> 	\> 3A \> 	\> 3B \> 	\\
+    3C \> 	\> 3D \> 	\> 3E \> 	\> 3F \> finit	\\
+    \\
+    40 \> 	\> 41 \> 	\> 42 \> 	\> 43 \> 	\\
+    44 \> 	\> 45 \> 	\> 46 \> 	\> 47 \> 	\\
+    48 \> 	\> 49 \> 	\> 4A \> 	\> 4B \> 	\\
+    4C \> 	\> 4D \> 	\> 4E \> 	\> 4F \> 	\\
+    \\
+    50 \> 	\> 51 \> 	\> 52 \> 	\> 53 \> 	\\
+    54 \> 	\> 55 \> 	\> 56 \> 	\> 57 \> 	\\
+    58 \> 	\> 59 \> 	\> 5A \> 	\> 5B \> 	\\
+    5C \> 	\> 5D \> 	\> 5E \> 	\> 5F \> 	\\
+    \\
+    60 \> 	\> 61 \> 	\> 62 \> 	\> 63 \> 	\\
+    64 \> 	\> 65 \> 	\> 66 \> 	\> 67 \> 	\\
+    68 \> 	\> 69 \> 	\> 6A \> 	\> 6B \> 	\\
+    6C \> 	\> 6D \> 	\> 6E \> 	\> 6F \> 	\\
+    \\
+    70 \> 	\> 71 \> 	\> 72 \> 	\> 73 \> 	\\
+    74 \> 	\> 75 \> 	\> 76 \> 	\> 77 \> 	\\
+    78 \> 	\> 79 \> 	\> 7A \> 	\> 7B \> 	\\
+    7C \> 	\> 7D \> 	\> 7E \> 	\> 7F \> 	\\
+  \end{tabbing}
+\end{document}

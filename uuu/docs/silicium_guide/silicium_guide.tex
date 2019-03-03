@@ -1,0 +1,91 @@
+\input texinfo @c -*-texinfo-*-
+@setfilename Silicium_Guide
+@settitle Silicium Display/Console Manager Guide
+@setchapternewpage odd
+
+@ifinfo
+This documents the inner workings of the Unununium Display/Console Manager.
+
+Copyright @copyright{} 2001 Richard Fillion
+@end ifinfo
+
+@titlepage
+@title Unununium Display/Console Manager
+@subtitle Silicium
+@author Richard Fillion (rick@@rhix.dhs.org)
+
+@page
+@vskip 0pt plus 1filll
+
+Copyrights @copyright{} 2001, Richard Fillion
+
+Modifications and/or translation of this document are allowed, given the
+following conditions:
+
+@itemize
+@item the original author is sent an electronic copy to @email{rick@@rhix.dhs.org}
+@item the modified document is freely available or at minimum charges necessary
+to cover material reproduction
+@item the author be given credit for the original work in the main copyright page
+@end itemize
+
+Distibution of this document in non-modified form is unlimited.
+
+@end titlepage
+
+@page
+@chapter Introduction
+@section What an OS does.
+
+An Operating System's task is to provide an interface for the user to a computer's hardware.  May that interface be a command prompt or full scale GUI, some basic management is required.
+
+@section Where Silicium is in all this...
+
+This is where Silicium comes in.  Silicium provides an easy interface to video drivers, and manages the LFB (linear frame buffer) so that the video data is not
+lost.  Silicium also provides the avility for an application to be notified when it has lost or recieved the focus of the user.
+
+@page
+@chapter Silicium in Theory
+@section Display Manager
+
+The workings of the display manager:
+The display manager has 3 basic functions, screen.create, screen.delete, and screen.set_active .  Used alone, these functions do not do much, but when an app makes use of all three, and the system makes use of them, alot of hard work is avoided, and replaced with a more enjoyable interface to video.
+
+The display manager revolves around what is called a "screen".  A screen is a piece of memory that can be treated as LFB.  The screen can be treated exactly like an LFB so stuff like video banks and other such things can be ignored.
+
+@subsection screen.create
+screen.create:
+This function looks at what video mode is requested, queries the video driver for information about this mode (how much space the LFB takes and where the LFB has to be located for the data to come up on the monitor).  According to this data, Silicium will allocate a piece of memory that is the size of the LFB.  The application that requested the screen is returned a Screen ID and also a pointer to its LFB.  The Screen ID is actually a pointer to a table of information about the screen.  The table could, if need be, edited by the application itself.
+
+@subsection screen.delete
+screen.delete:
+This function simply deallocates the LFB and takes care of disposing of the screen.  Once deleted, a screen is no longer usable in any way.
+
+@subsection screen.set_active
+screen.set_active:
+This function first looks at which screen is active, and checks where the active screen is located (ie: 0xA0000 for mode 0x13 on a VGA card), checks how big the LFB for this screen is, allocates a piece of memory of the same size, copies the data from the active screen to the newly allocated memory block.  Next, Silicium checks which video mode the to-be-active screen needs to be, and sets it with the proper driver.  Next it copies the data from the screen's LFB in memory to
+the video card, thus displaying the data as either text or graphics, and deallocates the LFB that used to be in memory.
+
+@section Console Manager
+The workings of the Console Manager:
+The console manager's main purpose is to let an application know when it has gained or lost the user's focus.  There are 3 basic function to the console manager, console.create, console.delete, and console.set_active .
+
+The console manager works with what we call "virtual consoles".  A virtual console is really not something tangible, and thus quite hard to describe.  The easiest way to understand it is to think of it as a set of 2 functions.  One that is
+called when the virtual console has lost the users focus, and another that is called when the virtual console has just gained the users focus.  The virtual console could be an application, a shell etc...
+
+@subsection console.create
+console.create:
+This function takes 2 pointers, one that points to the function to call when the new console will gain focus, and another when the console has lost focus.  It then keeps those pointers in memory for later use.  It returns a VC ID (Virtual Console Identification), which is used by the application to later set this console active.  Just like the screen ID, this ID is a pointer to a table of information about the virtual console, so it could be manually edited by the application if need be.
+
+@subsection console.delete
+console.delete:
+This function takes the provided VC ID, looks if it is active, if so, calls the
+console's "lose_focus" function, after which it deletes teh stored information about the virtual console and deallocates all memory Silicium was using for it.
+The virtual console is no longer usable.
+
+@subsection console.set_active
+console.set_active:
+This function looks at which virtual console is currently active, and calls it's "lose_focus" function, then calls the "gain focus" function of the provided VC
+ID.  If the new VC ID failed to properly initialize itself, Silicium automatically returns to the older virtual console.
+
+@bye

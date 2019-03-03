@@ -1,0 +1,10 @@
+%define kbd.get_keycode_client.VID 58
+%define kbd.get_unicode_client.VID 56
+%define kbd.lock_io.VID 55
+%define kbd.read_data.VID 61
+%define kbd.read_data_aux.VID 62
+%define kbd.send_command.VID 59
+%define kbd.send_data.VID 57
+%define kbd.set_keycode_client.VID 53
+%define kbd.set_unicode_client.VID 51
+%define kbd.unlock_io.VID 60

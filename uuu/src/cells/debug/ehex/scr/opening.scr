@@ -1,0 +1,21 @@
+; Opening screen for e_hex module
+; by EKS (futur@mad.scientist.com)
+;
+; Copyrights (c) 2000, Dave Poirier
+; Developped under the BSD License
+;----------------------------------
+
+db 2,63,0,1,8,205,'d',1,1,'efa',1,9,'ult sc',1,1,'hem',1,8,'e',205
+db 2,0,14,'.'
+db 10,'.'
+db 10,179
+db 10,1,1,179
+db 10,179
+db 10,1,9,179
+db 10,195,196,196,1,1,196,196,196,1,8,196,'--'
+db 10,1,1,179,1,15,' E_HEX module for 4th Axis, version I',10
+db "  Special rebuild of EKS' V2HEx by EKS :) ",1,8,'.'
+db 2,25,23,'-',3,13,196,1,1,196,196,1,9,196,1,1,217
+db 2,25,11,1,7,"Press a key to start edition"
+db 2,25,12,"Starting at address: "
+db 0

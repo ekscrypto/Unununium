@@ -1,0 +1,56 @@
+;; $Header: /cvsroot/uuu/uuu/src/cells/memory_manager/oxygen/oxygen.def,v 1.4 2001/11/28 01:02:19 instinc Exp $
+;; $Revision: 1.4 $
+;;
+;; Wave ][ Oxygen, definition file
+;; => by EKS, Dave Poirier
+;;
+;; (distributed under the BSD License)
+;;
+
+%define MB	*(1024*1024)
+%define KB	*(1024)
+
+ struc bnode
+.low		resd 1
+.high		resd 1
+.parent		resd 1
+ endstruc
+
+ struc tnode
+.low		resd 1
+.high		resd 1
+.equal		resd 1
+.parent		resd 1
+ endstruc
+
+ struc lnode
+.previous	resd 1
+.next		resd 1
+ endstruc
+
+ struc umm
+.node		resb bnode_size
+.base_address	resd 1
+.size		resd 1
+ endstruc
+
+;; note about umm_entries_per_table
+;;---------------------------------
+;; This value is selected so that umm_table will be on a nice 64 bytes boundary
+;; and if possible, on a kb boundary.  For example, with an umm node of 20bytes
+;; 102 umm entries per table + umm table lnode size = 2048 bytes.
+;;
+;; umm_size = 20bytes
+;; lnode_size = 8 bytes
+;;
+;; 20 * 102 + 8 = 2048
+;;
+;; This makes sure that we do not have too much memory waste internally.
+;;-----------------------------------------------------------------------------
+%define umm_entries_per_table 102
+
+ struc umm_table
+.node		resb lnode_size
+.entries	resb (umm_entries_per_table * umm_size)
+ endstruc
+

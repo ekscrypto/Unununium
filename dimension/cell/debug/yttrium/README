@@ -1,0 +1,6 @@
+CVS Repository Layout
+---------------------
+
+font.inc	UCS-32 font character definitions
+makefile	set of rules to build the cell, used by gnu-make
+yttrium.asm	debug support for gfx mode source file

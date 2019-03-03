@@ -1,0 +1,11 @@
+Sb16 - A very simple sounblaster(16/pro/compatibles) driver.
+
+The soundblaster 16 should be detected completely automatically.
+
+If you have a Sounblaster(pro/compatible), you need to modify the DMA and IRQ
+preferences ONLY. 
+On the EOF you will find the variables "sb.irq" and "sb.dma8" needed to do this.
+
+PLEASE REPORT ANY BUGS/HARDWAREINCOMPATIBILITIES!
+
+regards, Niklas

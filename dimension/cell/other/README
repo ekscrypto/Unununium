@@ -1,0 +1,5 @@
+CVS Repository Layout
+---------------------
+
+calcium		realmode portal (gives access to BIOS ints from pmode)
+potassium	IDT/IRQ manager

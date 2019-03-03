@@ -1,0 +1,15 @@
+%define lib.string.fasthash.VID 74
+%define lib.string.find_length.VID 92
+%define lib.string.find_length_dword_aligned.VID 150
+%define lib.string.match_pattern.VID 11
+%define lib.string.md5.VID 91
+%define lib.string.read_line.VID 153
+%define lib.string.filter_path.VID 176
+%define lib.string.ascii_decimal_to_reg.VID 185
+%define lib.string.ascii_hex_to_reg.VID 186
+%define lib.string.print_hex.VID 190
+%define lib.string.dword_to_hex.VID 195
+%define lib.string.print_char.VID 196
+%define lib.string.get_char.VID 197
+%define lib.string.dword_to_decimal_no_pad.VID 198
+%define lib.string.print_dec_no_pad.VID 199

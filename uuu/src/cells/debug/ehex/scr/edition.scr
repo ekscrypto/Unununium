@@ -1,0 +1,39 @@
+%define _COLOR_BORDER_	8	;<-- Dark gray
+%define _COLOR_LOW_	2	;<-- Dark green
+%define _COLOR_HIGH_	10	;<-- Light green
+
+db 1,_COLOR_BORDER_,192,3,52,196, 1,_COLOR_HIGH_,"Unununium SDK.EHEX v"
+db '.','0'+_VERSION_HIGH_
+db '.','0'+_VERSION_LOW_
+db '.','0'+_VERSION_SPECIFIER_
+db 1,_COLOR_BORDER_,196
+db 1,_COLOR_LOW_," current offset",1,_COLOR_BORDER_,": ",1,_COLOR_HIGH_,"........"
+db 1,_COLOR_LOW_," D",1,_COLOR_BORDER_,':',1,10,"."	; Decode enabled? (0,1)
+db 1,_COLOR_LOW_," E",1,_COLOR_BORDER_,':',1,10,"."	; Edit enabled? (0,1)
+db 1,_COLOR_LOW_," F",1,_COLOR_BORDER_,':',1,10,"."	; Full Ascii View enabled? (0,1)
+db 1,_COLOR_LOW_," T",1,_COLOR_BORDER_,':',1,10,"."	; Type of data (memory, disk, file, ..)
+db 1,_COLOR_LOW_," L",1,_COLOR_BORDER_,':',1,10,".........."	; marked locations 0-9
+db 1,_COLOR_LOW_," O",1,_COLOR_BORDER_,':',1,10,".",1,8,":",1,9,"          "; data type representations
+db 1,_COLOR_BORDER_
+db 2,40,2,'-',2,52,2,'-',2,64,2,'-'
+db 2,40,3,'-',2,52,3,'-',2,64,3,'-'
+db 2,40,4,'-',2,52,4,'-',2,64,4,'-'
+db 2,40,5,'-',2,52,5,'-',2,64,5,'-'
+db 2,40,6,'-',2,52,6,'-',2,64,6,'-'
+db 2,40,7,'-',2,52,7,'-',2,64,7,'-'
+db 2,40,8,'-',2,52,8,'-',2,64,8,'-'
+db 2,40,9,'-',2,52,9,'-',2,64,9,'-'
+db 2,40,10,'-',2,52,10,'-',2,64,10,'-'
+db 2,40,11,'-',2,52,11,'-',2,64,11,'-'
+db 2,40,12,'-',2,52,12,'-',2,64,12,'-'
+db 2,40,13,'-',2,52,13,'-',2,64,13,'-'
+db 2,40,14,'-',2,52,14,'-',2,64,14,'-'
+db 2,40,15,'-',2,52,15,'-',2,64,15,'-'
+db 2,40,16,'-',2,52,16,'-',2,64,16,'-'
+db 2,40,17,'-',2,52,17,'-',2,64,17,'-'
+db 2,0,18,1,_COLOR_BORDER_,196,196,180,1,_COLOR_HIGH_," Decoder output ",1,_COLOR_BORDER_,179,179,179
+db 0
+
+%undef _COLOR_BORDER_
+%undef _COLOR_HIGH_
+%undef _COLOR_LOW_

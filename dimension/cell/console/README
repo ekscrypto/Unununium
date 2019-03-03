@@ -1,0 +1,5 @@
+CVS Repository Layout
+---------------------
+
+silicium	display manager (videomodes, buffers, etc)
+silver		terminal manager (ansi, utf-8, vt100 support)

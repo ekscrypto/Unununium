@@ -1,0 +1,5 @@
+CVS Repository Layout
+---------------------
+
+helium.asm	ICS (Inter-Communication System) sources
+makefile	set of rules to build the ICS, used by gnu-make

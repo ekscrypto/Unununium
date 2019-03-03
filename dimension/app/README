@@ -1,0 +1,8 @@
+Directories Layout
+------------------
+
+base		basic utilities: cat, ls, ps
+dev		development tools: gcc, make, nasm
+disk		disk utilities: dd, fdisk, mkfs
+net		network applications/utlities: ftp, irc, ssh, telnet
+text		text editors/viewers: ghostview, vim, xpdf

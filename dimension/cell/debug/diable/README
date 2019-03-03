@@ -1,0 +1,5 @@
+CVS Repository Layout
+---------------------
+
+diable.asm	basic generic debugging support sources
+makefile	set of rules to build diable, used by gnu-make

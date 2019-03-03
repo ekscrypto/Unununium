@@ -1,0 +1,35 @@
+How to use this boot record
+
+
+1.) Create a ext2 file system on your floppy
+    a) login as root
+    b) mke2fs /dev/fd0   (or appropriate drive)
+
+2.) Build the distribution for a location of 1MB
+    a) open the makefile of the distro you want to build
+    b) locate the U3LFLAGS= line
+    c) locate the --offset=value in this line
+    d) change the value to 00100000
+    e) locate on the same line the --stack-location=value option
+       note: if this option is missing, you may add it at the end of the others
+    f) set this value to 00007A00
+    g) save the makefile and exit
+    h) type: make u3core.bin
+
+3.) Copy the u3core.bin binary to the file system
+    a) login as root
+    b) mount the floppy with the file system
+       i.e.: mount /dev/fd0 /floppy
+    c) copy the u3core.bin file to the root directory of the floppy
+       i.e.: cp u3core.bin /floppy
+    d) unmount the floppy
+       i.e.: umount /floppy
+
+4.) Install the boot record onto the floppy
+    a) go in uuu/src/boot/ext2_boot
+    b) type: make
+    c) type: make install
+
+You are now ready to boot the floppy!  Note, some distributions might require
+other files to be located on the drive, make sure you read the distribution's
+documentations before launching the system.

@@ -1,0 +1,5 @@
+CVS Repository Layout
+---------------------
+
+calcium.asm	realmode portal code
+makefile	rules to build the realmode portal, used by gnu-make

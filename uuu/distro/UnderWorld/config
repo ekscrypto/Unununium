@@ -1,0 +1,40 @@
+ load={/cell/oxygen -c $BASE_MEM$ -e $EXT_MEM$}
+  transfer=mem
+
+  load={
+    /cell/meitnerium
+    /cell/hydrogen
+    }
+  transfer=jit
+
+  load={
+    /cell/helium
+    /cell/potassium
+    /lib/libfasthash
+    /lib/libstring
+    /lib/libterminal
+    /lib/libapp
+    /lib/libenv
+    /cell/ozone
+    /cell/devfs
+    /cell/chromium
+    /cell/ext2
+    }
+
+  run=/bin/mount $ROOT_DEV$ /
+  transfer=fs
+
+  load={
+    /cell/executioner
+    }
+  transfer=linking
+  
+  load={
+    /cell/lanthane
+    }
+  transfer=logging
+
+  run=/bin/mktty 8
+  run=/bin/ish <> /dev/tty/0
+
+

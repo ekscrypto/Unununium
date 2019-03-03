@@ -1,0 +1,21 @@
+Directories Layout
+------------------
+
+comm		communications: ics, sockets
+console		console virtualization: single, multiple, virtual
+debug		various debugging utility cells, offering services helping
+		the developer in monitoring, tracing and debugging his app
+		or his cell.
+dyn		dynamic linking support: bin, elf, rdoff, ubf
+fs		file system drivers: devfs, ext2, fat, vfs, xfs
+lib		helpers providing api to access other cells more easily
+memory		memory management/monitoring
+net		protocols: ip, tcp, udp, http, ftp, dns
+io/bus		bus adapter drivers: firewire, ide, scsi, usb
+io/net		network adapater drivers: 3c90xB, ne2000, tulip
+io/other	other io drivers: serial port, parallel port
+io/pci		pci adapter drivers
+io/sound	sound adapter drivers: gus, sb16, sblive
+io/storage	storage devices driver: ata, atapi, fdc, jazz, zip
+io/ui		user input drivers: joystick, keyboard, mouse, reality glove
+io/video	graphic adapter drivers: nvidia, voodoo2/3/4, svga

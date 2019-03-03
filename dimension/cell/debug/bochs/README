@@ -1,0 +1,5 @@
+CVS Repository Layout
+---------------------
+
+bochs.asm	additional debugging support when running under Bochs, sources
+makefile	set of rules to build bochs-support, used by gnu-make

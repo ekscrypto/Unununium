@@ -1,0 +1,5 @@
+CVS Repository Layout
+---------------------
+
+makefile	set of rules to build the terminal manager, used by gnu-make
+silver.asm	terminal manager sources

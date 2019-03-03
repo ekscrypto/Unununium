@@ -1,0 +1,528 @@
+\input texinfo @c -*-texinfo-*-
+@setfilename UUU_System_Introduction
+@settitle UUU System Introduction Guide
+@setchapternewpage odd
+
+@ifinfo
+This documentation relate to the Unununium Operating Engine basic architecture and techniques
+
+Copyright @copyright{} 2001 Dave Poirier
+@end ifinfo
+
+@titlepage
+@title Unununium Operating Engine
+@subtitle System Introduction Guide
+@author Dave Poirier (futur@@mad.scientist.com)
+
+@page
+@vskip 0pt plus 1filll
+
+Copyrights @copyright{} 2001, Dave Poirier
+
+Modifications and/or translation of this document are allowed, given the
+following conditions:
+
+@itemize
+@item the original author is sent an electronic copy to @email{futur@@mad.scientist.com}
+@item the modified document is freely available or at minimum charges necessary to cover material reproduction
+@item the author be given credit for the original work in the main copyright page
+@end itemize
+
+Distibution of this document in non-modified form is unlimited.
+
+@end titlepage
+
+@contents
+
+@unnumbered This guide
+
+This guide was designed so that each section can be read individually, in any
+order.  The chapter order was selected so as conveniently introducing the
+reader to the various terms used in the system, so some of the terms might
+actually be repeated thru the guide.
+
+Any suggestion or correction should be sent to the author of the document.
+
+I tried to make minimal use of assembly language specifics, so most
+non-assembly programmer should be able to go thru the docs and understand the
+architecture.
+
+
+@page
+@chapter Unununium
+@section The project
+
+The unununium project is an effort at creating a highly dynamic environment,
+that can be molded into various systems capable of sharing parts,
+thus simplifying and reducing the time needed to develop many closely related,
+but not identical, specialized operating systems. Our goal is to develop a set
+of tools with related documentation that other projects will be able to use.
+
+In order to demonstrate the power and feasability of such system, we are
+developing a few basic constituants and are using them to create demonstration
+distributions.
+
+@section The roots
+
+Even if this project started only in late 2000, the ideas around it have been
+germinating for quite some time.  The P/\R/\N0iD project was the earliest
+project with sensible roots that can be related to the current ongoing effort.
+
+P/\R/\N0iD was to become a hacker platform, dedicated to network intensive
+security testing.  One of the secondary goals of this project was to be as fast
+as possible internally so as to be able to dedicate more cpu time at analyzing
+network related information.
+
+At some point during development, self-modifying code became part of the study
+of possible techniques that could allow us to speed things up.  This study of
+self-modifying code revealed to us a whole world of possibilities, and we
+quickly realized how much could be gained. We have then started a project
+called 4th Axis, which was our first real steps toward the current system.
+
+Work with the 4th Axis project allowed us to determine the best way to use
+self-modifying code and the limitations on its usage.  We also learnt that
+some pre-calculations could be done at link time, but that would require
+some specialized development tools, most notably, linkers.
+
+@section The beginning
+
+Creating the linker was one of the first task we started.  The first linker
+allowed us to use various object files (ELF) and put them together in what we
+call a 'core' image, that can be later booted.
+
+In 4th Axis, this 'core' image was created by using a master file with lots of
+small include files, creating label conflicts and also making the code hard
+to change.
+
+Using the linker, we could add/remove parts simply by removing the object's
+name from the command line.  Being that easy, the system quickly grown to some
+respectable size.  We soon became aware that a better function management
+system would be required, and that the linker would need to become yet even
+more powerful and offer better control over section placement.
+
+The second and current generation of linker was then coded. U3Linker came to
+life with a wide range of options, allowing close to total control over section
+positioning in the core, dynamic relocation information inclusion or exclusion
+via command line flags as well as the so desired function listing.
+
+Now armed with good tools, and with experience with dynamic code,
+hot-constituants replacement, multi-threading and other important issues, we
+are attacking the last phase of this project, documentation and final release.
+
+
+@section The powered world
+
+Unununium thru the V0iD architecture define a very dynamic environment, with
+its own set of rules.  Using a single-addressing-space (SAS) combined with
+self-modifying-code (SMC), the environment is highly geared toward ease of
+development and execution speed.
+
+We have agreed at some point to start using the term 'operating engine' rather
+than the more common 'operating system' for one simple reason; an operating
+system offer a set of software tools allowing you to use your computer, where
+an operating engine is allowing you to run this set of tools allowing you to
+use this computer.  Some people would rather call this the 'kernel', but since
+our environment is highly dynamic and absolutely no static piece of code or
+data exist, we prefered avoiding this term.
+
+A 'kernel' is normally the part of the operating system that will stay in
+memory at all time, offering the most basic system functions so that libraries
+or modules can come to complement the kernel.  Variations of the basic kernel
+have been designed with the years, such as microkernel, nanokernel,
+macrokernel, exokernel, etc; but they relate to how much is implemented in the
+static part.  We have none.
+
+In our execution model, we have what we like to call, 'cells', which are the
+basic construction unit used to build our operating engine.  Using these
+cells, someone may create various designs, each working with different set of
+rules.  Each of these cells may dynamically be unloaded or replaced at runtime,
+they are specially designed to have their function dependencies listed and
+can easily be imported into a running system.
+
+The group of cells selected create the operating engine, which seems from the
+outside as one single unit offering functions, fulfilling the same purpose as
+a kernel, the difference yet lying in the fact that this 'single unit' isn't
+going to stay still, it's evolving, or morphing each time a cell is unloaded or
+loaded, taking a new shape and modifying the function set offered to the
+outside world.
+
+We like to consider this system as a living organism, thus the saying 'organic
+software design'. Internally, what we see are cells offering each other
+functions, and creating function links thru self-modifying-code, making the
+cells look like living organisms adapting themselves to their environment.
+Like organic cells, they can be replaced, removed or added.  The selection of
+cells must be done carefully, or the system might simply reject the latest
+addition.
+
+Even though it seems like a poetic description, it really closely describes our
+working environment.  An ever changing and evolving world.
+
+@chapter Single-Addressing-Space
+@section Introduction
+
+Single-Addressing-Space, or SAS for short, describes a memory model where no
+segmentation is used.  Segmentation was introduced in computers when memory
+addressing extensions was required, but that we didn't want to modify the
+associated instruction set.
+
+SAS isn't something new, it is the first memory model that was ever used in
+computer systems, and probably is the most widely implemented, yet, probably
+the most obscure in the world of the x86 architecture.
+
+Back in the 1950s and 1960s, this was the only memory model used.  Somewhere
+along the line in the 1970s, segmentation was adopted, allowing developpers to
+use the same instruction set and simply extend it to address the entire 
+larger memory addressing range.  The appearance of RISC (reduced instruction
+set computers) triggered the re-apperance of SAS, such system included the
+IBM RS/6000, PA-RISC, R4000 and the ever so popular Alpha.  In the last years,
+some computer systems were even developed specifically to take full advantage
+of this memory model, such as the UltraSparc and the future Itanium processors.
+
+The main advantage of using single-addressing-space rather than segmentation is
+with data sharing.  When you want to pass on a pointer to a string to a library
+or system function in a segmented memory model, you have to provide both a 
+'segment' and an 'offset' within that segment, where in the single addressing
+space model you can simply provide the 'offset', saving one register.
+
+Depending on the security model selected, task switching may even have lower
+overhead, since no need for read/write privileges access must be done on
+segment selector loads.
+
+Here are some pointers to operating system projects that are using single
+addressing space:
+
+@itemize
+@item @uref{http://www.soi.city.ac.uk/research/sarc/angel, Angel}
+@item @uref{http://www.cse.unsw.edu.au/~disy/Mungi/,Mungi}
+@item @uref{http://www.cl.cam.ac.uk/Research/SRG/netos/nemesis/,Nemesis}
+@item @uref{http://www.cs.washington.edu/homes/levy/opal/opal.html,Opal}
+@item @uref{http://www.eas.asu.edu/~sasos/,Sombrero}
+@end itemize
+
+@section x86 specific
+
+The x86 architecture, or better known as the Intel Architecture(tm), wasn't
+designed to support natively single-address-space, thus, some tricks must be
+used to 'simulate' it and to implement memory protection.
+
+By creating a single memory segment, encompassing the entire memory address
+range, and giving full read/write access, it is possible to make the system
+look like single-addressing-space to the instruction set.  Due to some segment
+description constraints, 2 segments are created, one for the code, and another
+for the data, both mapping the entire memory addressing range.
+
+One of the strong point of memory segmentation is memory encapsulation and
+protection.  In other words, it is possible to restrict access of a block of
+instructions to a specific memory range.  When activating the tricked single
+addressing space, we find ourselves with this protection mechanism being
+unavailable.
+
+Protection can be achieved by using yet some other mechanisms, but it is much
+slower on every task switch, making memory protection very costly.  To achieve
+this protection, one can use the paging mechanisms of the processor, setting
+the pages one do not want to have access as absent.  Each memory access to one
+of these area will cause a 'Page Fault' allowing the system to evaluate access
+rights and decide to allow or deny access to the information.
+
+One issue that can't really be avoided by using a somehow 'pure' single
+addressing space environment on the x86 is code segment rights.  Some
+instructions on the x86 are known as being privileged, and being accessible
+only in ring 0.  By enabling single addressing space and creating a single
+unique code segment, you by the same token give ring 0 access to all
+applications.  This can be yet restricted by creating multiple code segment
+with specific access to protection rings, and running applications in the
+less privileged ring.  Doing such action will allow protections on the
+instruction set used, but will cancel all advantages of using single addressing
+space for system function calls.
+
+
+@section Code location
+
+A difficulty that was seen with single addressing space is where your code
+and data is going to be loaded.  In a segmented model, the offset to the
+start of your code/data is always fixed, since you can create small addressing
+range specially mapped for each application/driver.  This possibility doesn't
+exist anymore in single-addressing-space, so other methods are required.
+
+Most likely, systems are going to use a combination of the various techniques.
+In Unununium, we provide strong support for dynamic recalculation, but we also
+provides all the tools required for the other techniques, leaving the programer
+with the final choice and total freedom.
+
+@subsection Fixed location code/data
+
+ It is possible to conceive a system such that each constituant be built to go
+ at a specific memory location known in advance.  Such system is known to be
+ more trackable but less scalable.  An example of a difficult situation is when
+ one of the constituant increase above the reserved size and the various other
+ constituants must then be relocalized to give it some place.
+ 
+ Such technique is better used in parallel with a paging mechanism, allowing to
+ create address range outside the physical memory layout, thus allowing to
+ leave more room between each constituant.
+ 
+@subsection Register Indexing
+ 
+ Another method is to load each constituant, at locations determined at runtime,
+ and to give them a pointer to the start of their code/data in memory.  This
+ pointer is then later used as an index to reference any code/data access.
+ 
+ The big disadvantage of such method is that you can't anymore use the index
+ register to perform general operations, and losing this single index pointer
+ makes your entire program lost and most likely, crash.
+ 
+ This method is often used in combination with the next one.
+ 
+@subsection Dynamic Recalculation
+ 
+ This technique, even if being the one showing the longest loading time, allow
+ the code to use all the registers and yet be loaded at any offset determined
+ at runtime.
+ 
+ It consist of keeping a list of all the points in a program that need to be
+ recalculated/adjusted, and at load time, to fix all those points with the
+ address of the start of code/data.
+ 
+ This method allow pieces of code to directly use the data without having to
+ recalculate the offset using an index at each data access, effectively
+ reducing code size and speeding up execution time.
+
+
+@chapter JIT-Linking
+@section Introduction
+
+ JIT (Just In Time) Linking is a technique we have developed in order to take
+ full advantage of the single-addressing-space environment.  This technique
+ provides a solution to the code localisation problem, but also allow us to
+ have an entirely reloadable at runtime system, making each constituant truely
+ individual.
+
+ At runtime, a typical system have a few dozen cells in memory, each using
+ and providing some functions from/to other cells.  A database engine keeps
+ a reference to the location of each provided functions, and also all the
+ points in memory referencing this function.
+
+ The JIT-Linking consist of calculating the location of the various required
+ functions in a newly loaded/reloaded cell.  This same JIT-linking is also
+ responsible for keeping these calculation accurate at all time in case the
+ value associated with a provided function changes.
+
+ Using this technique, we can have pieces of codes directly calling each other
+ rather than using a system dispatcher likes many operating systems do.  The
+ results are quite clear on this, you have a 30% to 500% speed increase,
+ an easier to deal with method of calling up functions, easier to add new
+ and remove functions to a running system.
+
+@section An actual comparison
+
+ In order to properly see the difference between Unununium and other operating
+ systems, here's an example on how to display a string for the V2 Operating
+ System:
+ 
+ @example
+ mov edi, string
+ mov al, 4
+ int 0x20
+ @end example
+
+ whereas in Unununium, we have the following:
+ 
+ @example
+ mov esi, string
+ call __display_string.c_basic
+ @end example
+
+ For most of you, this might not tell you much, but here's what's happening.
+ In the V2 Operating System, a system call going thru an interrupt handler
+ takes a few hundreds cpu cycles, then, the service number in 'al' must be
+ analyzed and then the proper routine is given control.
+
+ In Unununium, we directly go to the proper routine, thus, avoiding the costly
+ interrupt handler, bypassing any other cross-reference and directly giving
+ control to our function displaying the string.
+
+ The technique of using an interrupt handler with dispatcher based on the
+ service number is used in almost all operating systems, including DOS, Windows
+ 95/98/ME/2000/NT, OS/2, Linux, OpenBSD, FreeBSD and quite a few more.
+
+ In fact, in unununium, calling an external service takes exactly the same
+ amount of cpu cycles as calling an internal function.  Thus promoting even
+ more the use of libraries and small reloable constituant at absolutely no
+ cpu cycle cost.
+
+@section The trap
+
+ Like any other system design, there is always a trap.  The fact that we are
+ recalculating binaries at runtime introduces some extra cpu cycles required
+ before giving control to the binary.
+
+ This same problem might be considered even more critical when one of the cell
+ providing many functions to an enormous amount of other cells is unloaded
+ or reloaded, thus requiring a very large amount of cells to be recalculated.
+
+@section Using idle time to perform calculations
+
+ Using some coordination, it is actually possible to perform the calculations
+ on the binaries while it is actually loaded.  By understanding how a read
+ operation is performed on a device, we notice that there is some idle time
+ between the actual @code{read} command and the data being received.  This
+ idle time may be used to perform recalculations on the read data, thus
+ reducing the total time before a binary can be given control.
+ 
+@section The falldown
+
+ One of the place where the actual latency couldn't be reduced is when updating
+ various dynamic pointers of an already loaded cell.  In this case, only the
+ optimization of the algorithm performing the actual update may help reducing
+ the total time required.
+
+@chapter Operating Engine
+@section Introduction
+
+ Many systems work on the principle of @samp{Operating Systems} where we work
+ on the principle of @samp{Operating Engine}.  The difference can be quite
+ subtle for a non-initiated, but we see it as major in Unununium.
+
+ A typical @samp{Operating System} include not only the kernel with the system
+ files, but also everything that is required to make basic usage of a computer
+ system.  That includes text edition software, file management facility, disk
+ access tools and sometime even network related material.
+
+ An @samp{Operating Engine} is used to define the environment in which these
+ applications, such as text editor, will evolute and run.  By itself, it
+ doesn't provide any @samp{user tool}, but may provide @samp{application
+ libraries}.
+
+@section Building up using layers: OSW
+
+ While the operating engine is responsible for the basic dynamic environment,
+ the @samp{Operating System Wrapper}, or @samp{OSW} in short, is responsible
+ for the actual executable file format, the interface used by the applications
+ to interact with the system functions, and the various other user-world
+ related issues.
+
+ The reason behind using operating system wrappers, is that a system could be
+ made to run only java applications, while another one would allow full access
+ to the entire operating engine realm without any check of any kind.
+
+ Various distributions implementors might desire to use some common operating
+ system wrapper specifications, but we leave them the freedom to decide.
+
+
+@section Freedom: almost total liberty
+
+ While most systems are concentrating on internal restrictions and on
+ controlling what modules, libraries and applications can do, we in Unununium
+ are concentrating on the opposite, how to give as much freedom as possible to
+ the programer.
+
+ Our operating engine doesn't have any restriction in itself, except specifying
+ the following basic rules:
+
+ @itemize
+ @item the basic constituants used by the os wrapper should be dynamically
+  reloadable
+ @item the basic constituants used by the os wrapper should not rely on a fixed
+  memory location
+ @item the basic constituants used by the os wrapper should not use or rely on
+  static data
+ @end itemize
+
+ Basing your evaluation on that, you could say that the only restriction is to
+ create a dynamic system.  While I would like to say it's true, I have yet to
+ admit that some development tools must be used, and these development tools
+ do require a few more restrictions.
+
+@section Basic constituants: cells
+
+ The idea of Unununium being the creation of various systems using, if
+ possible, common constituants while achieving different purposes, we need
+ somehow to define how these common constituants are to built, so as to be
+ able to share them between various systems.
+
+ We call these basic constituants @samp{Cells}.  A cell is seen as a single
+ unit, offering and/or using data/functions to/from other such units. By
+ using many cells, one create an operating environment, which is used by
+ the operating system wrapper to create the operating system.
+
+
+@chapter System core
+@section Introduction
+
+ When the system first starts up, an important number of cells is actually
+ loaded in the system, each requiring to be recalculated and initialized.  All
+ these recalculations are, for some noticeable time, a bottleneck preventing
+ the system to boot quickly.  Yet, unless you make some update to the basic
+ system setup, the boot sequence will always be the same, recalculations will
+ then have the same final results.
+
+ The fact that these results are similar over many system boots (on the same
+ machine with same configuration) makes it possible to improve the boot
+ sequence and actually reduce to an insignificant amount the recalculations to
+ perform.
+
+ A system core image is a specially formated binary, containing both the data
+ that would be found in memory after recalculations have been performed, all
+ that is required to know where the various dynamic functions and their users
+ resides, and, optionally, a list of all the points where recalculations have
+ been done.
+
+ The system core image is built by using a linker, which takes some relocatable
+ objects, link them together, re-order some sections, and recalculate, like it
+ would be at runtime, every points.
+
+@section The content
+
+ Without entering in the details of exactly how the binary is shaped, here's
+ what the system core actually contains:
+
+ @itemize
+ @item system core header
+ @item os-wrapper specific code and data
+ @item the various cells and their code/data
+ @item map of all the provided public functions
+ @item map of all the points using these provided functions
+ @item optionally, a map of all the points that required recalculations.
+ @end itemize
+
+@section A boot sequence
+
+ When the system is booting with the system core rather than other methods, it
+ is required some special sequence.  The following happen in the system:
+
+ @itemize
+ @item Boot sector is given control, loading the core image from disk to its
+ memory location
+ @item Boot sector transfer cpu control to the system core entry point, as
+ indicated in the system core header
+ @item System core entry point is receiving control, this entry point is in
+ the operating system wrapper
+ @item Operating system wrapper can display its logo, setup its initial graphic
+ or text video mode, etc.
+ @item Operating system wrapper then transfer control to each cell that
+ requires initialization
+ @item Operating system wrapper receive control one final time with all the
+ cells initialized, and can then launch into its own specialized initialization
+ sequence.
+ @end itemize
+
+ Since barely no recalculations are done, except in some very special cells'
+ initialization, the actual system initialization is quite fast.
+
+@chapter Continuing your Unununium quest
+@section Other documentations
+
+ As of writing of this guide, there isn't really other documentation available,
+ but we are planning on writing a complete programmer's guide.  I suggest you
+ take the time to visit our website at regular intervals, and watch for such
+ guide release to be announced in the news.
+
+ The url to our website is @url{http://uuu.sourceforge.net}
+
+ Thank you for your interest in Unununium, with the hope of seeing you around
+ for a long time to come!
+@*@*@*
+ Dave Poirier, aka EKS.@*
+ @samp{Bandai Kaosu Jikuu}
+@bye
+

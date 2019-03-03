@@ -1,0 +1,12 @@
+%define rtc.get_current_time.VID 18454
+%define rtc.set_current_time.VID 18455
+%define time.get_current_time.VID 19000
+%define time.set_current_time.VID 19001
+%define time.get_date_from_time.VID 19002
+%define time.get_time_from_date.VID 19003
+%define time.get_time_from_tod.VID 19004
+%define time.get_tod_from_time.VID 19005
+%define time.set_date.VID 19006
+%define time.set_tod.VID 19007
+%define time.uuu_to_unix.VID 19008
+%define time.unix_to_uuu.VID 19009

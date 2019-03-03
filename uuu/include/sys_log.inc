@@ -1,0 +1,5 @@
+%define __SYSLOG_TYPE_DEBUG__		0
+%define __SYSLOG_TYPE_INFO__		1
+%define __SYSLOG_TYPE_LOADINFO__	2
+%define __SYSLOG_TYPE_WARNING__		3
+%define __SYSLOG_TYPE_FATALERR__	4

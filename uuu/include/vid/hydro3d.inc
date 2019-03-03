@@ -1,0 +1,10 @@
+%define hydro3d.add_object_to_scene.VID 66
+%define hydro3d.calc_normals.VID 71
+%define hydro3d.create_camera.VID 67
+%define hydro3d.create_camera_matrix.VID 68
+%define hydro3d.create_mesh.VID 65
+%define hydro3d.create_object.VID 64
+%define hydro3d.create_scene.VID 63
+%define hydro3d.draw_scene.VID 69
+%define hydro3d.mul_matrix.VID 72
+%define hydro3d.rotate_matrix.VID 70

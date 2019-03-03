@@ -1,0 +1,28 @@
+Howto make an app for UUU ?
+
+ 1) Create your app (using stdlibs ONLY)
+ 2) Compile it:
+ 	gcc -c myapp.cpp -o myapp.o
+ 	
+ 3) Make the clibs (if not done)
+ 	cd devtool/clibs
+ 	make 
+ 	(the files will be created in clibs/bin)	<TODO>
+ 	
+ 4) Link your app with everything you use
+		ld -r myapp.o stdio.o -o myapp.o
+		
+ 5) Convert it to UBF (UUU Binary Format)
+ 		elf2ubf myapp.o myapp
+ 		
+ 6) Copy your app to the UUU floppy
+ 	(mount /floppy)
+ 	cp myapp /floppy/bin
+ 	
+ DONE!
+
+[NOTE] The libs aren't done yet!!!
+
+<ToDO>	[ ] Better makefiles (with make clean, stdio etc)
+	[ ] also, place assembled clibs in clibs/bin
+Luke

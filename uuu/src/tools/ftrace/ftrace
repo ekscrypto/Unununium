@@ -1,0 +1,216 @@
+#! /usr/bin/perl -w
+#
+# ftrace - by EKS - Dave Poirier (instinc@users.sourceforge.net)
+# Distributed under the BSD License
+#
+# usage: ./ftrace <input file> <output file>
+#
+# Takes a Bochs instruction trace + register trace and indent with the proper
+# level of indentation based on call/retn, removes the exceeding |MOD|
+# indicators and other useless information.
+
+$core_size = 0;
+$core_stat = 1;
+
+
+open($core,"<","u3core.bin") or $core_stat=0;
+
+if( $core_stat )
+{
+  binmode $core;
+  $core_size = (stat $core)[7];
+
+  print "using core file 'u3core.bin'\n";
+  print "\tsize:\t$core_size\n";
+
+  $core_offset = &read_val(32,4);
+  print "\toffset:\t$core_offset\n";
+}
+
+$instr = "";
+$regs = "";
+$flags = "";
+$spacing = "";
+$calldetected = 0;
+$retndetected = 0;
+$iretdetected = 0;
+$minimalspacing = 0;
+$leadingchar = "";
+while(<STDIN>)
+{
+  if( ($_ =~ /^\(\d+\)\.\[/ ) )
+  {
+    if( $instr ne "" )
+    {
+      $instr =~  s/^\((\d+)\)\.\[(\d+)\]\s([[:xdigit:]]+\:[[:xdigit:]]+)\s*\:\s+([[:xdigit:]]+)\:\s+(.*)$/$leadingchar$spacing$5\n$leadingchar$spacing\tcpu: $1\t\t\tcount: $2\n$leadingchar$spacing\teip: $3\topcode: $4/;
+      print $instr;
+    }
+    $_ =~ s/\(unknown context\)|\|MOD0|\|MOD1|\|MOD2|\|MOD3|\|REG0|\|REG1|\|REG2|\|REG3|\|REG4|\|REG5|\|REG6|\|REG7|\|RM0|\|RM1|\|RM2|\|RM3|\|RM4|\|RM5|\|RM6|\|RM7|\|SS0|\|SS1|\|SS2|\|SS3|\|SS4|\|SS5|\|SS6|\|SS7|\|IND0|\|IND1|\|IND2|\|IND3|\|IND4|\|IND5|\|IND6|\|IND7|\|BASE0|\|BASE1|\|BASE2|\|BASE3|\|BASE4|\|BASE5|\|BASE6|\|BASE7|\|//g;
+    $instr = $_;
+    $calldetected = 1 if( $_ =~ /call/ );
+    $retndetected = 1 if( $_ =~ /ret_near/ );
+    $iretdetected = 1 if( $_ =~ /iret/ );
+    if( $_ =~ /int/ )
+    {
+      $minimalspacing = length($spacing);
+      $leadingchar = "!";
+    }
+
+    # code corruption check
+    if( $core_stat and ($_ =~ /^.*0008:/))
+    {
+      $addrloc = $_;
+      $codeseq = $_;
+      $addrloc =~ s/^.*0008:([[:xdigit:]])+.*$/$1/;
+      chomp $addrloc;
+      $address = hex($addrloc)-$core_offset;
+      $codeseq =~ s/^.*0008:[[:xdigit:]]+\s*\:\s+([[:xdigit:]]+).*$/$1/;
+      if(($address > $core_offset) and ($address < ($core_offset+$core_size)))
+      {
+	if(not &cmp_instr($address,$codeseq))
+	{
+	  print "WARNING: incoming instruction differ from original u3core.bin value\n";
+	}
+      }
+    }
+  }
+  elsif( ($_ =~ /^Interrupt/) )
+  {
+    print "\n\n$_\n";
+    $minimalspacing = length($spacing);
+    $leadingchar = "!";
+  }
+  elsif( ($_ =~ /^request/) )
+  {
+    print "\n\n$_\n\n";
+  }
+  elsif( ($_ =~ /^eax:/) )
+  {
+    $regs = $_;
+  }
+  elsif( ($_ =~ /^cf=/) )
+  {
+    $flags = $_;
+
+    if( $calldetected )
+    {
+      $regs =~ s/\n//;
+      @registers = split "\t",$regs;
+      $toprint = $leadingchar.$spacing.$instr.$leadingchar.$spacing.$flags;
+      $spacing = $spacing." ";
+      $toprint = $toprint.$leadingchar."\n".$leadingchar."\n".$leadingchar.$spacing.">> \n";
+      foreach(@registers)
+      {
+	$toprint = $toprint.$leadingchar.$spacing.$_."\n";
+      }
+      $calldetected = 0;
+    }
+    elsif( $retndetected )
+    {
+      $regs =~ s/\n//;
+      @registers = split "\t",$regs;
+      $toprint = $leadingchar.$spacing.$instr.$leadingchar.$spacing.$flags;
+      foreach(@registers)
+      {
+	$toprint = $toprint.$leadingchar.$spacing.$_."\n";
+      }
+      $toprint = $toprint.$leadingchar.$spacing."<< \n".$leadingchar."\n";
+      if( length($spacing) gt $minimalspacing )
+      {
+	$spacing = substr($spacing,0,length($spacing)-1);
+      }
+      $toprint = $toprint.$leadingchar.$spacing."- back to \n";
+      $retndetected = 0;
+    }
+    elsif( $iretdetected )
+    {
+      $regs =~ s/\n//;
+      @registers = split "\t",$regs;
+      $toprint = $leadingchar.$spacing.$instr.$leadingchar.$spacing.$flags;
+      foreach(@registers)
+      {
+	$toprint = $toprint.$leadingchar.$spacing.$_."\n";
+      }
+      $toprint = $toprint.$leadingchar.$spacing."<< \n\n";
+      if( length($spacing) gt $minimalspacing )
+      {
+	$spacing = substr($spacing,0,length($spacing)-1);
+      }
+      $leadingchar = "";
+      $toprint = $toprint.$leadingchar.$spacing."- back to \n";
+      
+      $minimalspacing = 0;
+      $iretdetected = 0;
+    }
+    else
+    {
+      $instr =~ s/(\s)\s*/$1/g;
+
+      # reformat instructions, cpu count, etc.
+      $instr =~  s/^\((\d+)\)\.\[(\d+)\]\s([[:xdigit:]]+\:[[:xdigit:]]+)\s*\:\s+([[:xdigit:]]+)\:\s+(.*)$/$leadingchar$spacing$5\n$leadingchar$spacing\tcpu: $1\t\t\tcount: $2\n$leadingchar$spacing\teip: $3\topcode: $4/;
+
+      # note: we got 2 flags modification line, that's due to 2 different verions of bochs which displays or not the pf= flag
+      # ya.. that's ugly, sorry about it ;)
+      $flags =~ s/^cf=(\d)\saf=(\d)\szf=(\d)\ssf=(\d)\sof=(\d)\spf=(\d)\stf=(\d)\sif=(\d)\sdf=(\d)\siopl=(\d)\snt=(\d)\srf=(\d)\svm=(\d).*$/$leadingchar$spacing\tcf : $1\t\t\ttf : $7\n$leadingchar$spacing\taf : $2\t\t\tif : $8\n$leadingchar$spacing\tzf : $3\t\t\tdf : $9\n$leadingchar$spacing\tsf : $4\t\t\tiopl:$10\n$leadingchar$spacing\tof : $5\t\t\tnt : $11\n$leadingchar$spacing\tpf : $6\t\t\trf : $12  vm : $13/;
+      $flags =~ s/^cf=(\d)\,*\s+af=(\d)\,*\s+zf=(\d)\,*\ssf=(\d)\,*\sof=(\d)\,*\stf=(\d)\,*\sif=(\d)\,*\s+df=(\d)\,*\siopl=(\d)\,*\s+nt=(\d)\,*\srf=(\d)\,*\svm=(\d).*$/$leadingchar$spacing\tcf : $1\t\taf : $2\t\tiopl: $9\n$leadingchar$spacing\tzf : $3\t\ttf : $6\t\tnt : $10\n$leadingchar$spacing\tsf : $4\t\tif : $7\t\trf : $11\n$leadingchar$spacing\tof : $5\t\tdf : $8\t\tvm : $12/;
+
+      # reformat displayed registers
+      $regs =~ s/^(eax:\s[[:xdigit:]]{8})\s(ecx:\s[[:xdigit:]]{8})\s(edx:\s[[:xdigit:]]{8})\s(ebx:\s[[:xdigit:]]{8})\s(esp:\s[[:xdigit:]]{8})\s(ebp:\s[[:xdigit:]]{8})\s(esi:\s[[:xdigit:]]{8})\s(edi:\s[[:xdigit:]]{8}).*$/$leadingchar$spacing\t$1\t\t$5\n$leadingchar$spacing\t$2\t\t$6\n$leadingchar$spacing\t$3\t\t$7\n$leadingchar$spacing\t$4\t\t$8/;
+      $toprint = $instr . $regs . $flags;
+    }
+    $instr = "";
+    $regs = "";
+    $flags = "";
+    print $toprint;
+  }
+}
+close $core if $core_stat;
+
+sub cseek {
+  my $seek_offset = $_[0];
+
+  return 0 if( $seek_offset > $core_size );
+
+  if( not seek($core,$seek_offset,0) )
+  {
+    $core_stat = 0;
+    close $core;
+    return 0;
+  }
+  return 1;
+}
+
+sub read_val
+{
+  my $val = 0;
+  my $offset = $_[0];
+  my $size = $_[1];
+  my $orig_size = $size-1;
+
+  if( not cseek($offset) ) {return -1;}
+  while($size--)
+  {
+    read($core,$raw_data,1);
+    $val += ord($raw_data) << (8*($orig_size - $size));
+  }
+  return $val;
+}
+
+sub cmp_instr
+{
+  my $offset = $_[0];
+  my $encoded_instr = $_[1];
+  my $length = length($encoded_instr)/2;
+  my $encoded_byte = 0;
+  my $orig_encoding = 0;
+  
+  while($length--)
+  {
+    $orig_encoding = &read_val($offset, 1);
+    $encoded_byte = hex(substr($encoded_instr,0,2));
+    return 0 if( $orig_encoding != $encoded_byte );
+    $offset++;
+    $encoded_instr = substr($encoded_instr,2,length($encoded_instr)-2);
+  }
+  return 1;
+}

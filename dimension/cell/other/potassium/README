@@ -1,0 +1,6 @@
+CVS Repository Layout
+---------------------
+
+potassium.asm	IDT/IRQ manager sources
+potassium.info	Chemical properties of the potassium element, why we chose it!
+makefile	set of rules to build the IDT/IRQ manager, used by gnu-make

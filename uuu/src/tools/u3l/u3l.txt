@@ -1,0 +1,86 @@
+This doc is out-of-date, please see the documentation on our website. Thanks.
+http://uuu.sourceforge.net/docs/u3l/
+
+Command line options:
+---------------------
+
+ --offset=value
+
+   Allow the user to override default linking offset. The value must be
+   specified using hexadecimal characters (0-9, A-F) and cannot go above
+   FFFFFFFF. Note that 0x prefix or h suffix should not be used.
+
+ --include-drp
+
+   Activate the generation of dynamic recalculation information in the
+   final object.
+
+ --help
+
+   Display command line options and syntax, similar to this section.
+   
+ --abort-on-warning
+
+   Will cause the execution to stop after the first phase generating a warning
+   and will return with error code 'total warnings'+'total errors'
+
+ --generate-fid-listing[=file]
+
+   Activate the generation of the various provided functions and classes.
+   Optionally, a filename can be specified, by default the file is
+   'funtiosn.txt'
+ 
+ --hybrid-objects
+
+   If you need to link an object file that contain both special os wrapper
+   sections and normal cell sections, you need to use this option, otherwise
+   you will get warnings at link time.
+
+ --include-zero-size-sections
+
+   Nasm and some other compilers/assemblers sometime generate by 'mistake'
+   zero size sections.  Those sections can normally be removed without any
+   damage to the final produced file and are by default removed.  By using
+   this option, you will force the inclusion of those empty sections. This
+   feature can be used when you desire to create a cell header for the os
+   wrapper but have the 'cell' itself take no space in the final image other
+   than its header.
+ 
+
+Special sections:
+-----------------
+
+The following sections have special meanings:
+
+OS Wrapper sections
+  .osw_pre_init
+  .osw_interinit_code
+  .osw_post_init
+
+Cells sections
+  .c_onetime_init
+  .c_init
+  .c_info
+
+When the core image is generated, the header will contain the following infos:
+
+00  4  Signature "CoRE"
+04  1  Core header revision, currently 0x01
+05  1  reserved for future use
+06  2  Number of cells linked
+08  4  Total Size
+0C  4  Offset core is linked for
+10  4  Checksum of the entire core image
+14  4  OS wrapper entry point (__osw_entry global)
+18  4  Offset to DRP table
+1C  4  Offset to DLP Absolute table
+20  4  Offset to DLP Relative table
+
+Following this structure located at the start of the core image, is all the
+various cell information headers, which are of the following format:
+
+00  4  Offset within the core + linked offset, to the start of the cell
+04  4  Total size required by the cell
+08  4  Offset within the core + linked offset, to .c_info information section
+
+

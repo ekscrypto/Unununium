@@ -1,0 +1,12 @@
+%define mem.alloc.VID 1
+%define mem.alloc_20bit_address.VID 3
+%define mem.alloc_forced_range.VID 2
+%define mem.dealloc.VID 4
+%define mem.dealloc_forced_range.VID 5
+%define mem.free_blocks.VID 157
+%define mem.free_ram.VID 8
+%define mem.free_swap.VID 9
+%define mem.used_blocks.VID 158
+%define mem.used_ram.VID 6
+%define mem.used_swap.VID 7
+%define mem.realloc.VID 191

@@ -1,0 +1,11 @@
+CVS Repository Layout
+---------------------
+
+clibs		C libraries for Uuu
+e2u3map		Generate a map of all blocks of a file on an ext2 disk
+elf2ubf		Converts ELF .o into UBF files for Uuu
+include		Development tools include files
+u3common	Library used by the other tools
+u3fsdb		File System Developement Bench
+u3l		Uuu core (revision 2) linker
+u3lvid		Converts a VID listing into U3l input format

@@ -1,0 +1,69 @@
+#! /usr/bin/perl
+#
+# Script to convert the VID listing on the uuu.sf.net to a input file for the
+# vid name of U3L.
+#
+# Usage: cat srcfile | ./u3lvid > destfile
+#        u3l --vid-name-file=destfile
+#
+# The source file is the most recent copy of:
+#    http://uuu.sourceforge.net/vid.php?order=vid
+#
+
+
+$SRCFILE = "/home/eks/uuu/current/distro/FRuSTRaTiON/vid.php.html";
+$DESTFILE = "/home/eks/uuu/current/distro/FRuSTRaTiON/vid.names";
+
+open SRC, "<$SRCFILE" or die "Could not open source file $SRCFILE\: $!";
+open DEST, ">$DESTFILE" or die "Could not open destination file $DESTFILE\: $!";
+
+$VIDLIST_START = 0;
+
+while(<STDIN>)
+{
+  chomp;
+  if( $VIDLIST_START eq 1 )
+  {
+    @ENTRIES = split /<\/tr>/, $_;
+    foreach(@ENTRIES)
+    {
+      if ($_ eq "</tbody></table>")
+      {
+        close SRC;
+	close DEST;
+	exit 0;
+      }
+
+      $NAME = $_;
+      $VID = $_;
+      $NAME =~ s/^<tr><td>(.+)<\/td><td>200.?-.*$/$1/;
+      $VID =~ s/^.*<td>(\d+)<\/td>$/$1/;
+      print DEST "$VID $NAME\n";
+    }
+  }
+  $VIDLIST_START = 1 if ( $_ eq "<!--VID-->" );
+}
+
+close SRC;
+close DEST;
+
+die "Invalid source file format. <!--VID--> missing?\n";
+# if you get this error, you are either using the wrong page, or the vid
+# listing page does not contain the <!--VID--> tag just before the start of
+# the entries themselves.
+#
+# i.e.:
+#   ...
+#   <tbody><tr>
+#     <th><a href="http://uuu.sf.net/vid.php?order=name">name</a></th>
+#     <th><a href="http://uuu.sf.net/vid.php?order=created">created</a></th>
+#     <th><a href="http://uuu.sf.net/vid.php?order=owner">owner</a></th>
+#     <th><a href="http://uuu.sf.net/vid.php?order=vid">VID</a></th>
+#   </tr>
+#   <!--VID-->
+#   <tr><td>mem.alloc</td>....
+#
+# The end of the vid listing is detected by a </tr></table>. Also note that
+# at the time this script was written, the entire vid listing was a on single
+# line, so I'm not entirely sure how the script will work if the vid listing
+# is on multiple lines.

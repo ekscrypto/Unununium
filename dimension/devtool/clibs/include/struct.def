@@ -1,0 +1,13 @@
+; Unununium Standard Libs		by Lukas Demetz
+; Some structures
+;
+
+  struc l4u_FileDescr
+.lasterror:	resd 1
+.iserror:	resd 1
+.iseof:		resd 1			; EOF?
+.cur_pos:	resd 1
+.file_descr:	resd 1			; Points to UUU's file descriptor
+  endstruc
+  
+

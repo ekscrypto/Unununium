@@ -1,0 +1,2192 @@
+     1                              <1> ; Unununium Operating Engine
+     2                              <1> ; Distributed under the BSD License
+     3                              <1> 
+     4                              <1> 
+     5                              <1> 
+     6                              <1> %ifndef __MACROS_INC__
+     7                              <1> %define __MACROS_INC__
+     8                              <1> 
+     9                              <1> 
+    10                              <1> ;;-----------------------------------------------------------------------------
+    11                              <1> ;; Uninitialized data macros
+    12                              <1> ;;
+    13                              <1> 
+    14                              <1> %macro res0 1.nolist
+    15                              <1> %{1}: resb 0
+    16                              <1> %endmacro
+    17                              <1> 
+    18                              <1> %macro res8 1.nolist
+    19                              <1> %{1}: resb 1
+    20                              <1> %endmacro
+    21                              <1> 
+    22                              <1> %macro res16 1.nolist
+    23                              <1> %{1}: resw 1
+    24                              <1> %endmacro
+    25                              <1> 
+    26                              <1> %macro res32 1.nolist
+    27                              <1> %{1}: resd 1
+    28                              <1> %endmacro
+    29                              <1> 
+    30                              <1> %macro res64 1.nolist
+    31                              <1> %{1}: resd 2
+    32                              <1> %endmacro
+    33                              <1> 
+    34                              <1> %macro res128 1.nolist
+    35                              <1> %{1}: resd 4
+    36                              <1> %endmacro
+    37                              <1> 
+    38                              <1> 
+    39                              <1> ;;-----------------------------------------------------------------------------
+    40                              <1> ;; Global Data/Functions definitions
+    41                              <1> ;;
+    42                              <1> %macro vglobal 2
+    43                              <1>   %ifnnum %2
+    44                              <1>     %error "seccond arg to vglobal must be a number"
+    45                              <1>   %else
+    46                              <1>     global ..@VOiD%2
+    47                              <1>     ..@VOiD%2 equ %1
+    48                              <1>   %endif
+    49                              <1> %endmacro
+    50                              <1> 
+    51                              <1> %macro vglobal 1
+    52                              <1>   %ifndef %1.VID
+    53                              <1>     %error "matching .VID not defined for vglobal:"
+    54                              <1>     %error %1
+    55                              <1>   %else
+    56                              <1>     vglobal {%1}, {%1.VID}
+    57                              <1>   %endif
+    58                              <1> %endmacro
+    59                              <1> 
+    60                              <1> %macro vextern 2
+    61                              <1>   %ifndef vextern%1
+    62                              <1>     %define vextern%1
+    63                              <1>     %ifnnum %2
+    64                              <1>       %error "seccond arg to vextern must be a number"
+    65                              <1>     %endif
+    66                              <1>     extern ..@VOiD%2
+    67                              <1>     %1 equ ..@VOiD%2
+    68                              <1>   %endif
+    69                              <1> %endmacro
+    70                              <1> 
+    71                              <1> %macro vextern 1
+    72                              <1>   %ifndef %1.VID
+    73                              <1>     %error "matching .VID not defined for vextern:"
+    74                              <1>     %error %1
+    75                              <1>   %else
+    76                              <1>     vextern {%1}, {%1.VID}
+    77                              <1>   %endif
+    78                              <1> %endmacro
+    79                              <1> ;;------------------------------------------------------------------------------
+    80                              <1> ;; globalfunc NAME, CLASS [, FID, CID]
+    81                              <1> ;;
+    82                              <1> 
+    83                              <1> %macro globalfunc 1
+    84                              <1>   %1:
+    85                              <1>   vglobal %1
+    86                              <1> %endmacro
+    87                              <1> 
+    88                              <1> %macro globalfunc 2
+    89                              <1>   %1:
+    90                              <1>   vglobal %1, %2
+    91                              <1> %endmacro
+    92                              <1> 
+    93                              <1> 
+    94                              <1> ;;------------------------------------------------------------------------------
+    95                              <1> ;; externfunc NAME, CLASS
+    96                              <1> ;;
+    97                              <1> ;; Calls an external function. Use it like you would a CALL instruction.
+    98                              <1> 
+    99                              <1> %macro externfunc 1
+   100                              <1>   %ifndef %1.VID
+   101                              <1>     %error "matching .VID not defined for vextern:"
+   102                              <1>     %error %1
+   103                              <1>   %else
+   104                              <1>     vextern %1, %1.VID
+   105                              <1>     call %1
+   106                              <1>   %endif
+   107                              <1> %endmacro
+   108                              <1> 
+   109                              <1> %macro externfunc 2
+   110                              <1>   vextern %1, %2
+   111                              <1>   call %1
+   112                              <1> %endmacro
+   113                              <1> 
+   114                              <1> 
+   115                              <1> 
+   116                              <1> 
+   117                              <1> 
+   118                              <1> 
+   119                              <1> ;                                           -----------------------------------
+   120                              <1> ; STRING MACROS.. handy little things to make dword-aligned strings and such
+   121                              <1> ;==============================================================================
+   122                              <1> 
+   123                              <1> ;                                           -----------------------------------
+   124                              <1> ;                                                                       dstring
+   125                              <1> ;==============================================================================
+   126                              <1> ;; usage: dstring "hi mom, this is a string"
+   127                              <1> ;;
+   128                              <1> ;; makes a dword aligned string. The nulls are automaticly added.
+   129                              <1> 
+   130                              <1> %macro dstring 1+.nolist
+   131                              <1>   db %1,0
+   132                              <1>   align 4, db 0
+   133                              <1> %endmacro
+   134                              <1> 
+   135                              <1> 
+   136                              <1> ;                                           -----------------------------------
+   137                              <1> ; ICS RELATED MACROS.. simplify and reduce the chances of error: stupid dd 0,0!
+   138                              <1> ;==============================================================================
+   139                              <1> 
+   140                              <1> %macro ics_client 1.nolist
+   141                              <1> dd 0,0
+   142                              <1> %{1}:
+   143                              <1> %endmacro
+   144                              <1> 
+   145                              <1> 
+   146                              <1> ;                                           -----------------------------------
+   147                              <1> ; IRQ RELATED MACROS.. simplify and reduce the chances of error: stupid dd 0,0!
+   148                              <1> ;==============================================================================
+   149                              <1> %macro irq_client 1.nolist
+   150                              <1> dd 0,0
+   151                              <1> %{1}:
+   152                              <1> %endmacro
+   153                              <1> 
+   154                              <1> 
+   155                              <1> 
+   156                              <1> ;                                           -----------------------------------
+   157                              <1> ;       DEBUGGING MACROS.. I'm now using them all over, better define them here
+   158                              <1> ;==============================================================================
+   159                              <1> 
+   160                              <1> %macro dme 1.nolist	; prints a number to the upper-left corner of screen
+   161                              <1>   pushfd
+   162                              <1>   pushad
+   163                              <1>   mov edx, %{1}
+   164                              <1>   mov edi, 0xB8000
+   165                              <1>   externfunc debug.diable.dword_out
+   166                              <1>   popad
+   167                              <1>   popfd
+   168                              <1> %endmacro
+   169                              <1> 
+   170                              <1> %macro dmeh 1.nolist	; prints a number and waits for <enter>
+   171                              <1>   pushfd
+   172                              <1>   pushad
+   173                              <1>   mov edx, %{1}
+   174                              <1>   mov edi, 0xB80A0
+   175                              <1>   externfunc debug.diable.dword_out_wait
+   176                              <1>   popad
+   177                              <1>   popfd
+   178                              <1> %endmacro
+   179                              <1> 
+   180                              <1> %macro dmej 1.nolist	; prints a number to the upper-left and locks
+   181                              <1>   pushfd
+   182                              <1>   pushad
+   183                              <1>   mov edx, %{1}
+   184                              <1>   mov edi, 0xB80A0
+   185                              <1>   externfunc debug.diable.dword_out
+   186                              <1>   popad
+   187                              <1>   popfd
+   188                              <1>   cli
+   189                              <1>   jmp short $
+   190                              <1> %endmacro
+   191                              <1> 
+   192                              <1> %macro vm 1.nolist	; edits a memory location
+   193                              <1>   pushfd
+   194                              <1>   pushad
+   195                              <1>   mov esi, %{1}
+   196                              <1>   externfunc debug.ehex.edit_mem
+   197                              <1>   popad
+   198                              <1>   popfd
+   199                              <1> %endmacro
+   200                              <1> 
+   201                              <1> ;                                           -----------------------------------
+   202                              <1> ;                                 MORE DEBUGGING MACROS that use the system log
+   203                              <1> ;==============================================================================
+   204                              <1> 
+   205                              <1> %macro dbg_print 1+.nolist	; prints a string to the system log;
+   206                              <1> %ifdef _DEBUG_			; caller includes the 0 or 1 terminator
+   207                              <1> [section .data]
+   208                              <1> %%str: db %1
+   209                              <1> __SECT__
+   210                              <1> 
+   211                              <1>   push esi
+   212                              <1>   mov esi, %%str
+   213                              <1>   externfunc sys_log.print_string
+   214                              <1>   pop esi
+   215                              <1> %endif
+   216                              <1> %endmacro
+   217                              <1> 
+   218                              <1> %macro dbg_print_hex 1.nolist	; prints a 32 bit number in hex
+   219                              <1> %ifdef _DEBUG_
+   220                              <1>   push edx
+   221                              <1>   mov edx, %1
+   222                              <1>   externfunc sys_log.print_hex
+   223                              <1>   pop edx
+   224                              <1> %endif
+   225                              <1> %endmacro
+   226                              <1> 
+   227                              <1> %macro dbg_term_log 0.nolist	; terminates the log
+   228                              <1> %ifdef _DEBUG_
+   229                              <1>   externfunc sys_log.terminate
+   230                              <1> %endif
+   231                              <1> %endmacro
+   232                              <1> 
+   233                              <1> %macro dbg_wait_ack 0.nolist	; waits for the user to hit <enter>
+   234                              <1> %ifdef _DEBUG_
+   235                              <1>   externfunc debug.diable.wait
+   236                              <1> %endif
+   237                              <1> %endmacro
+   238                              <1> 
+   239                              <1> ;                                           -----------------------------------
+   240                              <1> ;                                        lprint - print stuff to the system log
+   241                              <1> ;==============================================================================
+   242                              <1> ;; parameters:
+   243                              <1> ;; -----------
+   244                              <1> ;; %1 = string to print. If you want a NL on the end you need {} braces so nasm
+   245                              <1> ;;        will pass it in one arg, ex. '{"hi mom!",0xa}'
+   246                              <1> ;; %2 = type of log entry, one of DEBUG, INFO, LOADINFO, WARNING, FATALERR
+   247                              <1> ;; %3 = arg 1
+   248                              <1> ;; %4 = arg 2
+   249                              <1> ;;   ...
+   250                              <1> ;; 
+   251                              <1> ;; returned values:
+   252                              <1> ;; ----------------
+   253                              <1> ;; All registers unmodified (even eax on non-error)
+   254                              <1> ;; errors as usual
+   255                              <1> 
+   256                              <1> %macro lprint 2-*.nolist
+   257                              <1>   %rep %0-2
+   258                              <1>     %rotate -1
+   259                              <1>     push dword %1
+   260                              <1>   %endrep
+   261                              <1>   %rotate %0-2
+   262                              <1> 
+   263                              <1>   push byte __SYSLOG_TYPE_%2__
+   264                              <1>   push dword %%str
+   265                              <1>   externfunc sys_log.print
+   266                              <1>   lea esp, [esp + (%0 - 2) * 4 ]
+   267                              <1> 
+   268                              <1> [section .data]
+   269                              <1> %%str: db %1,0xa,0
+   270                              <1> __SECT__
+   271                              <1> %endmacro
+   272                              <1> 
+   273                              <1> 
+   274                              <1> %macro dbg 1+.nolist	; a single line %ifdef _DEBUG_ thingie
+   275                              <1> %ifdef _DEBUG_
+   276                              <1>   %1
+   277                              <1> %endif
+   278                              <1> %endmacro
+   279                              <1> 
+   280                              <1> %endif	;__MACROS_INC__
+   281                              <1> ; $Header: /cvsroot/uuu/existence/include/errors.inc,v 1.4 2003/01/11 22:11:43 instinc Exp $
+   282                              <1> 
+   283                              <1> %ifndef __ERRORS_INC__
+   284                              <1> %define __ERRORS_INC__
+   285                              <1> 
+   286                              <1> %macro def_err 3.nolist
+   287                              <1> __ERROR__%{1}__ EQU (%{2} << 16)+%{3}
+   288                              <1> %endmacro
+   289                              <1> 
+   290                              <1> %macro set_err 2.nolist
+   291                              <1>   mov %{1}, __ERROR__%{2}__
+   292                              <1> %endmacro
+   293                              <1> 
+   294                              <1> 
+   295                              <1> def_err 	UNSUPPORTED_OPTION	,0	,1
+   296                              <1> def_err		INVALID_PARAMETERS	,0	,2
+   297                              <1> def_err		INTERNAL_FAILURE	,0	,3
+   298                              <1> def_err		OUT_OF_MEMORY		,0	,4
+   299                              <1> def_err		OUT_OF_THREADS		,1	,1
+   300                              <1> def_err		FAILED_SCHEDULING	,1	,2
+   301                              <1> def_err		LOCK_FAILED		,1	,3
+   302                              <1> 
+   303                              <1> %endif
+   304                              <1> ;%define int.disable_nmi.VID 31
+   305                              <1> ;%define int.enable_nmi.VID 30
+   306                              <1> ;%define int.get_irq_mask.VID 36
+   307                              <1> ;%define int.hook.VID 39
+   308                              <1> ;%define int.hook_irq.VID 32
+   309                              <1> ;%define int.mask_irq.VID 34
+   310                              <1> ;%define int.set_default_handler.VID 173
+   311                              <1> ;%define int.set_irq_mask.VID 37
+   312                              <1> ;%define int.unhook.VID 174
+   313                              <1> ;%define int.unhook_irq.VID 33
+   314                              <1> ;%define int.unmask_irq.VID 35
+   315                              <1> 
+   316                              <1> %define int.set_handler.VID 39
+   317                              <1> %define int.unset_handler.VID 174
+   318                              <1> %define irq.connect.VID 32
+   319                              <1> %define irq.disconnect.VID 33
+   320                              <1> %define irq.relocate_table.VID 7099
+   321                              <1> %define hra.data_resolution.VID		10
+   322                              <1> %define hra.data_system_time.VID	11
+   323                              <1> %define hra.schedule.VID		12
+   324                              <1> %define hra.set_schedule_callback.VID	13
+   325                              <1> %define hra.unschedule.VID		14
+   326                              <1> 
+   327                              <1> %define ps.data_priority_ceiling.VID		15
+   328                              <1> %define ps.schedule.VID				16
+   329                              <1> %define ps.set_priority.VID			17
+   330                              <1> %define ps.unschedule.VID			18
+   331                              <1> %define tsa.acquire_thread.VID		19
+   332                              <1> %define tsa.release_thread.VID		20
+   333                              <1> %define tsa.set_initial_values.VID	21
+   334                              <1> %define tsa.yield.VID			22
+   335                              <1> %define tsa.data_total_threads.VID	45
+   336                              <1> %define tsa.data_acquired_threads.VID	46
+   337                              <1> %define tsa.data_current_thread.VID	47
+   338                              <1> %define tsa.data_stack_size.VID		48
+   339                              <1> %define sem.acquire_lock.VID		58
+   340                              <1> %define sem.release_lock.VID		59
+   341                              <1> %define sem.try_acquire_lock.VID	60
+   342                              <1> 
+   343                              <1> %include "vid/tsa.inc"
+   344                              <2> %define tsa.acquire_thread.VID		19
+   345                              <2> %define tsa.release_thread.VID		20
+   346                              <2> %define tsa.set_initial_values.VID	21
+   347                              <2> %define tsa.yield.VID			22
+   348                              <2> %define tsa.data_total_threads.VID	45
+   349                              <2> %define tsa.data_acquired_threads.VID	46
+   350                              <2> %define tsa.data_current_thread.VID	47
+   351                              <2> %define tsa.data_stack_size.VID		48
+   352                              <1> 
+   353                              <1> 
+   354                              <1> %macro ENTER_CRITICAL_SECTION 0.nolist
+   355                              <1>   pushfd
+   356                              <1>   cli
+   357                              <1> %endmacro
+   358                              <1> 
+   359                              <1> %macro LEAVE_CRITICAL_SECTION 0.nolist
+   360                              <1>   popfd
+   361                              <1> %endmacro
+   362                              <1> 
+   363                              <1> 
+   364                              <1> 
+   365                              <1> struc semaphore_t
+   366 00000000 <res 00000004>      <1>   .count	resd 1
+   367 00000004 <res 00000004>      <1>   .wait_queue	resd 1
+   368                              <1> endstruc
+   369                              <1> 
+   370                              <1> 
+   371                              <1> %define SEM(x)			x: times semaphore_t_size db 0
+   372                              <1> %define rSEM(x)			x: resb semaphore_t_size
+   373                              <1> %define SEM_INIT(x,y)		__SEM_INIT x, y
+   374                              <1> %define SEM_RELEASE_LOCK(x)	__SEM_RELEASE_LOCK x
+   375                              <1> %define SEM_ACQUIRE_LOCK(x)	__SEM_ACQUIRE_LOCK x
+   376                              <1> %define SEM_TRY_ACQUIRE_LOCK(x)	__SEM_TRY_ACQUIRE_LOCK x
+   377                              <1> 
+   378                              <1> 
+   379                              <1> %macro __SEM_INIT 2.nolist
+   380                              <1> %ifnidni %1, eax
+   381                              <1>   mov eax, %{1}
+   382                              <1> %endif
+   383                              <1>   mov dword [eax], %{2}
+   384                              <1>   mov dword [eax + semaphore_t.wait_queue], 0
+   385                              <1> %endmacro
+   386                              <1> 
+   387                              <1> %macro __SEM_RELEASE_LOCK 1.nolist
+   388                              <1> %ifnidni %1, eax
+   389                              <1>   mov eax, %{1}
+   390                              <1> %endif
+   391                              <1>   inc dword [eax]
+   392                              <1>   jg  short %%done
+   393                              <1>   externfunc sem.release_lock
+   394                              <1> %%done:
+   395                              <1> %endmacro
+   396                              <1> 
+   397                              <1> 
+   398                              <1> %macro __SEM_ACQUIRE_LOCK 1.nolist
+   399                              <1> %ifnidni %1, eax
+   400                              <1>   mov eax, %{1}
+   401                              <1> %endif
+   402                              <1>   dec dword [eax]
+   403                              <1>   jns short %%done
+   404                              <1>   externfunc sem.acquire_lock
+   405                              <1> %%done:
+   406                              <1> %endmacro
+   407                              <1> 
+   408                              <1> 
+   409                              <1> %macro __SEM_TRY_ACQUIRE_LOCK 1.nolist
+   410                              <1> %ifnidni %1, eax
+   411                              <1>   mov eax, %{1}
+   412                              <1> %endif
+   413                              <1>   dec dword [eax]
+   414                              <1>   clc
+   415                              <1>   jns short %%done
+   416                              <1>   externfunc sem.try_acquire_lock
+   417                              <1> %%done:
+   418                              <1> %endmacro
+   419                              <1> 
+   420                              <1> 
+   421                              <1> 
+   422                              <1> 
+   423                              <1> struc spinlock_t
+   424 00000000 <res 00000001>      <1> .lock	resb 1
+   425                              <1> endstruc
+   426                              <1> 
+   427                              <1> %define SPIN(x) x: db 0
+   428                              <1> %define rSPIN(x) x: resb 1
+   429                              <1> 
+   430                              <1> %define SPIN_INIT(x)			__SPIN_INIT x
+   431                              <1> %define SPIN_INIT_LOCKED(x)		__SPIN_INIT_LOCKED x
+   432                              <1> %define SPIN_ACQUIRE_LOCK(x)		__SPIN_ACQUIRE_LOCK x
+   433                              <1> %define SPIN_ACQUIRE_IRQSAFE_LOCK(x)	__SPIN_ACQUIRE_IRQSAFE_LOCK x
+   434                              <1> %define SPIN_RELEASE_LOCK(x)		__SPIN_RELEASE_LOCK x
+   435                              <1> %define SPIN_RELEASE_IRQSAFE_LOCK(x)	__SPIN_RELEASE_IRQSAFE_LOCK x
+   436                              <1> 
+   437                              <1> 
+   438                              <1> %macro __SPIN_INIT 1.nolist
+   439                              <1>   mov byte [%1], 1
+   440                              <1> %endmacro
+   441                              <1> 
+   442                              <1> %macro __SPIN_INIT_LOCKED 1.nolist
+   443                              <1>   mov byte [%1], 0
+   444                              <1> %endmacro
+   445                              <1> 
+   446                              <1> 
+   447                              <1> %macro __SPIN_ACQUIRE_LOCK 1.nolist
+   448                              <1> ; Locks a SPINLOCK (use only outside of IRQ handlers)
+   449                              <1> ;
+   450                              <1> ; REQUIRES:
+   451                              <1> ;----------
+   452                              <1> ; param 1: register holding pointer to spinlock
+   453                              <1> ;
+   454                              <1> %%retry:
+   455                              <1>   dec byte [%1]
+   456                              <1>   jz short %%done
+   457                              <1>   inc byte [%1]
+   458                              <1>   externfunc tsa.yield
+   459                              <1>   jmp short %%retry
+   460                              <1> %%done:
+   461                              <1>   cli
+   462                              <1> %endmacro
+   463                              <1> 
+   464                              <1> 
+   465                              <1> %macro __SPIN_ACQUIRE_IRQSAFE_LOCK 1.nolist
+   466                              <1> ; Locks a SPINLOCK within an IRQ handler
+   467                              <1> ;
+   468                              <1> ; REQUIRES:
+   469                              <1> ;----------
+   470                              <1> ; param 1: register holding pointer to spinlock
+   471                              <1> ;
+   472                              <1> %%retry:
+   473                              <1>   dec byte [%1]
+   474                              <1>   jz short %%done
+   475                              <1>   inc byte [%1]
+   476                              <1>   jmp short %%retry
+   477                              <1> %%done:
+   478                              <1> %endmacro
+   479                              <1> 
+   480                              <1> 
+   481                              <1> %macro __SPIN_RELEASE_LOCK 1.nolist
+   482                              <1> ; Unlocks a SPINLOCK (use only outside of IRQ handlers)
+   483                              <1> ;
+   484                              <1> ; REQUIRES:
+   485                              <1> ;----------
+   486                              <1> ; param 1: register holding pointer to spinlock
+   487                              <1> ;
+   488                              <1>   inc byte [%1]
+   489                              <1>   sti
+   490                              <1> %endmacro
+   491                              <1> 
+   492                              <1> 
+   493                              <1> %macro __SPIN_RELEASE_IRQSAFE_LOCK 1.nolist
+   494                              <1> ; Unlocks a SPINLOCK within an IRQ handler
+   495                              <1> ;
+   496                              <1> ; REQUIRES:
+   497                              <1> ;----------
+   498                              <1> ; param 1: register holding pointer to spinlock
+   499                              <1> ;
+   500                              <1>   inc byte [%1]
+   501                              <1> %endmacro
+   502                              <1> 
+   503                              <1> 
+   504                              <1> 
+   505                              <1> HRA_CC_EXPIRED		EQU	0
+   506                              <1> HRA_CC_YIELD		EQU	1
+   507                              <1> HRA_CC_UNSCHEDULED	EQU	2
+   508                              <1> 
+   509                              <1> 
+   510                              <1> ; Wait Queues definitions
+   511                              <1> ; Copyright (C) 2002, Dave Poirier
+   512                              <1> ; Distributed under the X11 License
+   513                              <1> 
+   514                              <1> %ifndef __WAITQUEUE_INC__
+   515                              <1> %define __WAITQUEUE_INC__
+   516                              <1> 
+   517                              <1> 
+   518                              <1> struc wait_queue_t
+   519 00000000 <res 00000004>      <1> .flags		resd 1
+   520 00000004 <res 00000004>      <1> .next		resd 1
+   521 00000008 <res 00000004>      <1> .previous	resd 1
+   522 0000000C <res 00000004>      <1> .queued_items	resd 1
+   523                              <1> endstruc
+   524                              <1> 
+   525                              <1> struc wait_queue_head_t
+   526 00000000 <res 00000004>      <1> .lock		resd 1	; spinlock_t_size == 1, reserve 4 bytes for alignment
+   527 00000004 <res 00000004>      <1> .next		resd 1
+   528 00000008 <res 00000004>      <1> .previous	resd 1
+   529                              <1> endstruc
+   530                              <1> 
+   531                              <1> ; note: the WAIT_QUEUE macro defines a wait_queue_head!
+   532                              <1> ;
+   533                              <1> %define WAIT_QUEUE(x) x: times wait_queue_head_t_size db 0
+   534                              <1> 
+   535                              <1> %endif
+   536                              <1> 
+   537                              <1> struc _thread_t			; ----- ; -------------------------------------
+   538 00000000 <res 00000004>      <1> res32	.process_id		; 00-03 ; ID of parent process
+   539 00000004 <res 00000004>      <1> res32	.next			; 04-07 ; next thread in queue
+   540 00000008 <res 00000004>      <1> res32	.previous		; 08-0B ; previous thread in queue
+   541 0000000C <res 00000004>      <1> res32	.stack_top		; 0C-0F ; TOS (ESP)
+   542                              <1> res0	.priority		; 10-13 ; PS: Priority Assigned
+   543 00000010 <res 00000008>      <1> res64	.startline		; 10-13 ; HRA: start time
+   544 00000018 <res 00000004>      <1> res32	.runlength		; 18-1B ; HRA: number of microseconds of execution
+   545 0000001C <res 00000004>      <1> res32	.schedule_callback	; 1C-1F ; HRA: callback for rescheduling
+   546 00000020 <res 00000004>      <1> res32	.timer_handler		; 20-23 ; PS/HRA timer handler
+   547 00000024 <res 00000004>      <1> res32	.locked_mutexes		; 24-27 ; List of locked mutexes
+   548 00000028 <res 00000004>      <1> res32	.used_resources		; 28-2B ; List of used resources
+   549                              <1> endstruc			; ----- ; -------------------------------------
+   550                              <1> 
+   551                              <1> 
+   552                              <1> 
+   553                              <1> %define THRD(x,y,z) byte x + y + _thread_t. %+ z
+   554                                  ;; $Header: /cvsroot/uuu/existence/cells/process/avalon/avalon.asm,v 1.18 2009/05/22 03:27:01 instinc Exp $
+   555                                  ;;
+   556                                  ;; Avalon Hard Realtime Thread Engine
+   557                                  ;; Copyright (C) 2002-2003, Dave Poirier
+   558                                  ;; Distributed under the BSD License
+   559                                  
+   560                                  
+   561                                  %ifdef _RTDB_
+   562                                    global threads
+   563                                    global hra.realtime_queue
+   564                                    global hra.schedule
+   565                                    global hra.unschedule
+   566                                    global ps.priority_queue
+   567                                    global tsa.data_alloc_bitmap
+   568                                  %endif
+   569                                  
+   570                                  
+   571                                  
+   572                                  
+   573                                  ; Implementation Specifics
+   574                                  ;-------------------------
+   575                                  ;
+   576                                  ; > Thread ID
+   577                                  ;
+   578                                  ; Thread ID are pointers to stack base.  Thread headers are stored at the top
+   579                                  ; of the stack.  One can locate the thread headers by adding the stack size
+   580                                  ; to the thread ID then substracting the size of the thread headers.
+   581                                  ;
+   582                                  ; > Realtime Scheduler
+   583                                  ;
+   584                                  ; The scheduler is hard realtime. This implies that if two threads try to
+   585                                  ; schedule for the same time slot, one of them will fail.  Soft realtime
+   586                                  ; is possible by specifying an allowable tolerance.
+   587                                  ;
+   588                                  ; Using this tolerance, the thread will be scheduled at the specified time
+   589                                  ; or _LATER_, up to X microseconds as specified in the tolerance.
+   590                                  ;
+   591                                  
+   592                                  
+   593                                  
+   594                                  ; note: these comments were taken from the Linux kernel:
+   595                                  ;>-->
+   596                                  ; * Semaphores are implemented using a two-way counter:
+   597                                  ; * The "count" variable is decremented for each process
+   598                                  ; * that tries to acquire the semaphore, while the "sleeping"
+   599                                  ; * variable is a count of such acquires.
+   600                                  ; *
+   601                                  ; * Notably, the inline "up()" and "down()" functions can
+   602                                  ; * efficiently test if they need to do any extra work (up
+   603                                  ; * needs to do something only if count was negative before
+   604                                  ; * the increment operation.
+   605                                  ; *
+   606                                  ; * "sleeping" and the contention routine ordering is
+   607                                  ; * protected by the semaphore spinlock.
+   608                                  ; *
+   609                                  ; * Note that these functions are only called when there is
+   610                                  ; * contention on the lock, and as such all this is the
+   611                                  ; * "non-critical" part of the whole semaphore business. The
+   612                                  ; * critical part is the inline stuff in <asm/semaphore.h>
+   613                                  ; * where we want to avoid any extra jumps and calls.
+   614                                  ;
+   615                                  ; * Logic:
+   616                                  ; *  - only on a boundary condition do we need to care. When we go
+   617                                  ; *    from a negative count to a non-negative, we wake people up.
+   618                                  ; *  - when we go from a non-negative count to a negative do we
+   619                                  ; *    (a) synchronize with the "sleeper" count and (b) make sure
+   620                                  ; *    that we're on the wakeup list before we synchronize so that
+   621                                  ; *    we cannot lose wakeup events.
+   622                                  ;<--<
+   623                                  ;
+   624                                  ; A mutex is implemented as a semaphore with an initial value of 1.
+   625                                  ;
+   626                                  ;
+   627                                  
+   628                                  section .c_info
+   629                                  
+   630 00000000 03000000                  db 3,0,0,0
+   631 00000004 [10000000]                dd str_title
+   632 00000008 [35000000]                dd str_author
+   633 0000000C [39000000]                dd str_copyright
+   634                                  
+   635                                    str_title:
+   636 00000010 4176616C6F6E202D20-       db "Avalon - Hard Realtime Thread Engine",0
+   637 00000019 48617264205265616C-
+   638 00000022 74696D652054687265-
+   639 0000002B 616420456E67696E65-
+   640 00000034 00                 
+   641                                    str_author:
+   642 00000035 656B7300                  db "eks",0
+   643                                    str_copyright:
+   644 00000039 436F70797269676874-       db "Copyright (C) 2002-2003, Dave Poirier",0x0A
+   645 00000042 202843292032303032-
+   646 0000004B 2D323030332C204461-
+   647 00000054 766520506F69726965-
+   648 0000005D 720A               
+   649 0000005F 446973747269627574-       db "Distributed under the BSD license",0x00
+   650 00000068 656420756E64657220-
+   651 00000071 74686520425344206C-
+   652 0000007A 6963656E736500     
+   653                                  
+   654                                  ;-----------------------------------------------------------------------------
+   655                                  ;-----------------------------------------------------------------------------
+   656                                  
+   657                                  %define EXTRA_CHECKS
+   658                                  
+   659                                  
+   660                                  
+   661                                  ;------------------------------------------------------------------------------
+   662                                  ; Default stack size in bytes.  Note, the thread headers are stored at the
+   663                                  ; stack top, so if ESP == Thread ID the stack is empty.
+   664                                  ;
+   665                                  ; If ESP == thread ID - (_DEFAULT_STACK_SIZE - _thread_t_size) the stack is
+   666                                  ; full.
+   667                                  ;
+   668                                  %assign _LOG_STACK_SIZE_	11
+   669                                  %assign _STACK_SIZE_	    (1<<_LOG_STACK_SIZE_)
+   670                                  ;------------------------------------------------------------------------------
+   671                                  
+   672                                  
+   673                                  
+   674                                  ; Number of 32 threads block to allow
+   675                                  ;------------------------------------------------------------------------------
+   676                                  %assign _THREAD_BLOCKS_	 2
+   677                                  ;------------------------------------------------------------------------------
+   678                                  
+   679                                  
+   680                                  
+   681                                  ; Highest priority allowed and default priority set
+   682                                  ;------------------------------------------------------------------------------
+   683                                  %assign _DEFAULT_PRIORITY_	10
+   684                                  %assign _PRIORITY_CEILING_      25
+   685                                  ;------------------------------------------------------------------------------
+   686                                  
+   687                                  
+   688                                  ; Default time resolution (in microseconds)
+   689                                  ;------------------------------------------------------------------------------
+   690                                  %assign _DEFAULT_RESOLUTION_	100
+   691                                  ;------------------------------------------------------------------------------
+   692                                  
+   693                                  
+   694                                  ; initial eflags register state when creating threads
+   695                                  ;------------------------------------------------------------------------------
+   696                                  ; 
+   697                                  ; bit   description
+   698                                  ; ---   -----------
+   699                                  ;   0   CF, Carry flag
+   700                                  ;   1   1
+   701                                  ;   2   PF, Parity flag
+   702                                  ;   3   0
+   703                                  ;   4   AF, Adjust flag
+   704                                  ;   5   0
+   705                                  ;   6   ZF, Zero flag
+   706                                  ;   7   SF, Sign flag
+   707                                  ;   8   TF, Trap flag
+   708                                  ;   9   IF, Interrupt flag
+   709                                  ;  10   DF, Direction flag
+   710                                  ;  11   OF, Overflow flag
+   711                                  ; 12-13 IOPL, I/O Privilege level
+   712                                  ;  14   NT, Nested flag
+   713                                  ;  15   0
+   714                                  ;  16   RF, Resume flag
+   715                                  ;  17   VM, Virtual mode
+   716                                  ;  18   AC, Alignment check     
+   717                                  ;  19   VIF, Virtual Interrupt flag
+   718                                  ;  20   VIP, Virtual Interrupt pending
+   719                                  ;  21   ID, Identification flag
+   720                                  ; 22-31 0
+   721                                  %define _THREAD_INITIAL_EFLAGS_ 0x00000202
+   722                                  ;------------------------------------------------------------------------------
+   723                                  
+   724                                  
+   725                                  ; Initial code segment to use by default
+   726                                  ;------------------------------------------------------------------------------
+   727                                  %define _THREAD_INITIAL_CS_     0x0008
+   728                                  ;------------------------------------------------------------------------------
+   729                                  
+   730                                  
+   731                                  ; PIT Adjustment value
+   732                                  ;------------------------------------------------------------------------------
+   733                                  %assign _PIT_ADJ_DIV_		   1799795308
+   734                                  %assign _PIT_ADJ_DIV_PRECISION_		31
+   735                                  %assign _PIT_ADJ_MULT_		  2562336687
+   736                                  %assign _PIT_ADJ_MULT_PRECISION_	31
+   737                                  ;
+   738                                  ; How to compute this value... The 8254 PIT has a frequency of 1.193181MHz
+   739                                  ; and we want a resolution in microsecond.  Programmation of the pic is
+   740                                  ; pretty simple, you give it the number of "tick" to do, and it decrement
+   741                                  ; this value at each clock cycle (1.193...).  When the value reach 0, an
+   742                                  ; interrupt is fired.
+   743                                  ;
+   744                                  ; Thus, if we give 1 to the PIT, it will take 0.838095 micro-seconds to
+   745                                  ; fire an interrupt.  To have a proper 1 to 1 matching, we need to
+   746                                  ; multiply the number of microsecond to wait by 1.193181.
+   747                                  ;
+   748                                  ; Using fixed point arithmetic 1.31, we take this multiplier and shift
+   749                                  ; it by 31 bits, equivalent to multiplying it by 2^31. This gives us
+   750                                  ; a value of 2562336687 without losing any precision.
+   751                                  ;
+   752                                  ; Now if we multiply this 1.31 bits with a 31.1 value, we obtain a 32.32
+   753                                  ; fixed point result, which should be easy to extract from EDX:EAX.
+   754                                  ;
+   755                                  ; The operation will then consist of the following sequence:
+   756                                  ; o Load number of microseconds to wait: EAX = microseconds
+   757                                  ; o adjust the value for 31.1, insert a 0 on the right: EAX < 1
+   758                                  ; o multiply the 31.1 value with the 1.31 value: EAX * 2562336687
+   759                                  ; o get result in high part of 32.32: EDX = result
+   760                                  ;
+   761                                  ; For more information on fixed point arithmetic, please visit:
+   762                                  ; http://www.accu.org/acornsig/public/caugers/volume2/issue6/fixedpoint.html
+   763                                  ;
+   764                                  %if _PIT_ADJ_DIV_PRECISION_ <> _PIT_ADJ_MULT_PRECISION_
+   765                                    %error "Precision adjustments unmatching for mult/div in PIT conversion"
+   766                                  %endif
+   767                                  %assign _PIT_ADJ_SHIFT_REQUIRED_	(32 - _PIT_ADJ_MULT_PRECISION_)
+   768                                  ;------------------------------------------------------------------------------
+   769                                  
+   770                                  
+   771                                  ;------------------------------------------------------------------------------
+   772                                  ; Macro introducing a small I/O delay, gives some time for the chips to handle
+   773                                  ; the request we just sent.
+   774                                  ;
+   775                                  %define io_delay	out 0x80, al
+   776                                  ;%define io_delay       ;-no-delay-
+   777                                  ;------------------------------------------------------------------------------
+   778                                  
+   779                                  
+   780                                  ;----------------------------------------------------------[ DevBench support ]
+   781                                  %macro syscall 1.nolist
+   782                                    mov eax, %{1}
+   783                                    int 0x80
+   784                                  %endmacro
+   785                                  
+   786                                  %macro log 1.nolist
+   787                                  %ifdef _DEBUG_
+   788                                  [section .data]
+   789                                  %define STDERR	2	; file descriptor
+   790                                  %define SYS_WRITE 4	; syscall #
+   791                                  %%str: db %{1}, 0x0A
+   792                                  %%str_end:
+   793                                  __SECT__
+   794                                    pushad
+   795                                    mov ebx, STDERR
+   796                                    mov ecx, %%str
+   797                                    mov edx, %%str_end - %%str
+   798                                    syscall SYS_WRITE
+   799                                    popad
+   800                                  %endif
+   801                                  %endmacro
+   802                                  ;----------------------------------------------------------[/DevBench support ]
+   803                                  
+   804                                  
+   805                                  
+   806                                  
+   807                                  ;-----------------------------------------------------------------[ CELL INIT ]
+   808                                  %ifdef _RTDB_
+   809                                    section .text
+   810                                    global __c_init
+   811                                    __c_init:
+   812                                  %else
+   813                                    section .c_init
+   814                                    global _start
+   815                                    _start:
+   816                                  %endif
+   817                                  
+   818                                  						;- allocate a temporary thread
+   819 00000000 31D2                      xor  edx, edx					; set process id = 0
+   820 00000002 E8(35020000)              call tsa.acquire_thread			; attempt to acquire a thread
+   821 00000007 0F826E000000              jc near .exit				; catch a failure
+   822 0000000D A3[08040000]              mov  [tsa.data_current_thread], eax		; set it as "active"
+   823 00000012 BBD4070000                mov  ebx, _STACK_SIZE_ - _thread_t_size	;
+   824 00000017 C7441820[1D040000]        mov  dword [THRD(eax,ebx,timer_handler)], __irq_timer.ps_logic
+   825 0000001F C744181801000000          mov  dword [THRD(eax,ebx,runlength)], dword 1	;
+   826 00000027 89C3                      mov  ebx, eax					; save ID for thread release
+   827                                  						;
+   828 00000029 E8(35020000)              call tsa.acquire_thread			;- allocate init thread
+   829 0000002E 724B                      jc short .exit				; catch any alloc failure
+   830                                  						;
+   831 00000030 89E6                      mov  esi, esp					; current Top-Of-Stack
+   832 00000032 B900100000                mov  ecx, __INIT_STACK__			; Stack upper limit
+   833 00000037 50                        push eax					; thread ID
+   834 00000038 68[6A000000]              push dword .re_entry				; initial EIP
+   835 0000003D E8(B8020000)              call tsa.set_initial_values			; set thread values
+   836 00000042 E8(6A010000)              call ps.schedule				; schedule it priority based
+   837                                  						;
+   838 00000047 FA                        cli						; disable interrupts
+   839 00000048 B820000000                mov  eax, 0x20				; IRQ 0 = INT 20
+   840 0000004D BB[F0030000]              mov  ebx, __irq_timer				; set pointer to our handler
+   841                                    externfunc int.set_handler			; hook int directly
+   842                              <1>  %ifndef %1.VID
+   843                              <1>  %error "matching .VID not defined for vextern:"
+   844                              <1>  %error %1
+   845                              <1>  %else
+   846                              <1>  vextern %1, %1.VID
+   847                              <2>  %ifndef vextern%1
+   848                              <2>  %define vextern%1
+   849                              <2>  %ifnnum %2
+   850                              <2>  %error "seccond arg to vextern must be a number"
+   851                              <2>  %endif
+   852                              <2>  extern ..@VOiD%2
+   853                              <2>  %1 equ ..@VOiD%2
+   854                              <2>  %endif
+   855 00000052 E8(00000000)        <1>  call %1
+   856                              <1>  %endif
+   857                                  						;
+   858 00000057 B864000000                mov eax, _DEFAULT_RESOLUTION_			; set delay between interrupts
+   859 0000005C E81B000000                call __set_timer				; program interval timer
+   860                                  						;
+   861 00000061 E421                      in  al, 0x21					; get current ISR mask
+   862 00000063 24FE                      and al, 0xFE					; set bit 0 (IRQ 0) to 0
+   863 00000065 E621                      out 0x21, al					; update ISR mask
+   864                                  						;
+   865 00000067 FB                        sti						; enable interrupt
+   866 00000068 EBFE                      jmp short $					; wait for init thread
+   867                                  						;
+   868                                    .re_entry:
+   869                                    ; init thread entry point
+   870                                    ; registers:
+   871                                    ;  eax = init thread id
+   872                                    ;  ebx = temporary thread id
+   873                                    ;  ecx = __INIT_STACK__
+   874                                    ;  edx = 0
+   875                                    ;  esi = esp as received for cell initialization
+   876                                    ;  edi = undefined
+   877                                    ;  ebp = undefined
+   878                                    ;  esp = TOS
+   879                                    ;
+   880 0000006A 89D8                      mov  eax, ebx					; set id = temporary thread id
+   881 0000006C E8(79020000)              call tsa.release_thread			; release temporary thread
+   882                                  						;
+   883                                    .copying_stack:				;- copy init stack content
+   884 00000071 83E904                    sub ecx, byte 4				; proceed to next dword
+   885 00000074 FF31                      push dword [ecx]				; move it to init stack
+   886 00000076 39F1                      cmp ecx, esi					; check if everything was moved
+   887 00000078 75F7                      jnz short .copying_stack			; if not, repeat
+   888                                  						;
+   889 0000007A F8                        clc						; indicate no error
+   890                                  .exit:						;
+   891 0000007B C3                        retn						; complete initialisation
+   892                                  ;-----------------------------------------------------------------[/CELL INIT ]
+   893                                  
+   894                                  
+   895                                  
+   896                                  
+   897                                  __set_timer:
+   898                                  ;--------------------------------------------------------------[ set timer ]--
+   899                                  ;>
+   900                                  ;; Reprogram the PIT and sets the number of full timer expirations for a given
+   901                                  ;; microsecond delay.
+   902                                  ;;
+   903                                  ;; parameters
+   904                                  ;; ----------
+   905                                  ;; eax = number of microseconds before allowing interruption
+   906                                  ;;
+   907                                  ;; returns
+   908                                  ;; -------
+   909                                  ;; eax = destroyed
+   910                                  ;; edx = destroyed
+   911                                  ;; pit_ticks = number of full expiration to let go
+   912                                  ;<
+   913                                  ;-----------------------------------------------------------------------------
+   914 0000007C D1E0                      shl  eax, _PIT_ADJ_SHIFT_REQUIRED_		; adjust microseconds for multiply
+   915 0000007E BAAF27BA98                mov  edx, _PIT_ADJ_MULT_			; magic multiplier
+   916 00000083 F7E2                      mul  edx					; magic multiply, get ticks count
+   917 00000085 B036                      mov  al, 0x36					; select channel 0
+   918 00000087 E643                      out  0x43, al					; send selection to command port
+   919 00000089 92                        xchg eax, edx					; copy the whole part of the result
+   920 0000008A 80E47F                    and  ah, 0x7F					; keep only the lowest 15bits
+   921 0000008D E640                      out  0x40, al					; send the low 8bits of tick count
+   922 0000008F 88E0                      mov  al, ah					; get high 7bits of tick count
+   923 00000091 E640                      out  0x40, al					; send it
+   924 00000093 C3                        retn						; return to caller
+   925                                  ;-----------------------------------------------------------------------------
+   926                                  ;     8253 Mode Control Register, data format: 
+   927                                  ;
+   928                                  ;        |7|6|5|4|3|2|1|0|  Mode Control Register
+   929                                  ;         | | | | | | | ----- 0=16 binary counter, 1=4 decade BCD counter
+   930                                  ;         | | | | ---------- counter mode bits
+   931                                  ;         | | ------------- read/write/latch format bits
+   932                                  ;         ---------------- counter select bits (also 8254 read back command)
+   933                                  ;
+   934                                  ;        Bits
+   935                                  ;         76 Counter Select Bits
+   936                                  ;         00  select counter 0
+   937                                  ;         01  select counter 1
+   938                                  ;         10  select counter 2
+   939                                  ;         11  read back command (8254 only, illegal on 8253, see below)
+   940                                  ;
+   941                                  ;        Bits
+   942                                  ;         54  Read/Write/Latch Format Bits
+   943                                  ;         00  latch present counter value
+   944                                  ;         01  read/write of MSB only
+   945                                  ;         10  read/write of LSB only
+   946                                  ;         11  read/write LSB, followed by write of MSB
+   947                                  ;
+   948                                  ;        Bits
+   949                                  ;        321  Counter Mode Bits
+   950                                  ;        000  mode 0, interrupt on terminal count;  countdown, interrupt,
+   951                                  ;             then wait for a new mode or count; loading a new count in the
+   952                                  ;             middle of a count stops the countdown
+   953                                  ;        001  mode 1, programmable one-shot; countdown with optional
+   954                                  ;             restart; reloading the counter will not affect the countdown
+   955                                  ;             until after the following trigger
+   956                                  ;        010  mode 2, rate generator; generate one pulse after 'count' CLK
+   957                                  ;             cycles; output remains high until after the new countdown has
+   958                                  ;             begun; reloading the count mid-period does not take affect
+   959                                  ;             until after the period
+   960                                  ;        011  mode 3, square wave rate generator; generate one pulse after
+   961                                  ;             'count' CLK cycles; output remains high until 1/2 of the next
+   962                                  ;             countdown; it does this by decrementing by 2 until zero, at
+   963                                  ;             which time it lowers the output signal, reloads the counter
+   964                                  ;             and counts down again until interrupting at 0; reloading the
+   965                                  ;             count mid-period does not take affect until after the period
+   966                                  ;        100  mode 4, software triggered strobe; countdown with output high
+   967                                  ;             until counter zero;  at zero output goes low for one CLK
+   968                                  ;             period;  countdown is triggered by loading counter;  reloading
+   969                                  ;             counter takes effect on next CLK pulse
+   970                                  ;        101  mode 5, hardware triggered strobe; countdown after triggering
+   971                                  ;             with output high until counter zero; at zero output goes low
+   972                                  ;             for one CLK period
+   973                                  ; 
+   974                                  ;-----------------------------------------------------------------------------
+   975                                  
+   976                                  
+   977                                  
+   978                                  section .text
+   979                                  
+   980                                  
+   981                                  
+   982                                  
+   983                                  
+   984                                  
+   985                                  
+   986                                  
+   987                                  
+   988                                  ;------------------------------------------------------[ public: hra.schedule ]
+   989                                  hra.schedule:
+   990                                  ;>
+   991                                  ;; Used to schedule a thread at a specified time.
+   992                                  ;;
+   993                                  ;; parameters:
+   994                                  ;;------------
+   995                                  ;;  eax: thread to act upon
+   996                                  ;;  esi:ecx: earliest start time
+   997                                  ;;  edx: expected run time
+   998                                  ;;  ebx: allowable tolerance
+   999                                  ;;
+  1000                                  ;; returned values:
+  1001                                  ;;-----------------
+  1002                                  ;;  eax: scheduled time of execution
+  1003                                  ;;  errors and registers as usual
+  1004                                  ;<
+  1005                                  ;-----------------------------------------------------------------------------
+  1006 00000000 60                        pushad					; backup all registers
+  1007 00000001 BDD4070000                mov ebp, _STACK_SIZE_ - _thread_t_size	; compute offset to _thread_t
+  1008 00000006 9CFA                      ENTER_CRITICAL_SECTION			; disable preemption
+  1009                                  						;
+  1010                                  						;*** Verify It Isn't Linked yet
+  1011 00000008 837C050400                cmp  dword [THRD(ebp,eax,next)], byte 0	; already scheduled?
+  1012 0000000D 7540                      jnz  short .unable_to_schedule		; if so, return failure
+  1013                                  						;
+  1014                                  						;*** Initialize Thread Info
+  1015 0000000F 50                        push eax					; save thread ID
+  1016 00000010 A1[F2030000]              mov  eax, [hra.data_resolution]		; load system time resolution
+  1017 00000015 F7E2                      mul  edx					; compute runlength in us
+  1018 00000017 5A                        pop  edx					; restore thread ID
+  1019 00000018 89441518                  mov  [THRD(ebp,edx,runlength)], eax		; set maximum runlength (in us)
+  1020 0000001C C7441520[5D040000]        mov  [THRD(ebp,edx,timer_handler)], dword __irq_timer.rt_logic; as Realtime
+  1021                                  						;
+  1022                                  						;*** Startline must be future
+  1023 00000024 2B0D[00080200]            sub  ecx, [hra.data_system_time]		; check startline low
+  1024 0000002A 1B35[04080200]            sbb  esi, [hra.data_system_time+4]		; check startline high
+  1025 00000030 7926                      jns  short .restore_original_startline	; > current time? validated
+  1026 00000032 01D9                      add  ecx, ebx					; try to dig in tolerance
+  1027 00000034 89CB                      mov  ebx, ecx					; set tolerance = left over
+  1028 00000036 83D600                    adc  esi, byte 0				; check if it was enough
+  1029 00000039 89F1                      mov  ecx, esi					; attempt set ecx = 0
+  1030 0000003B 7812                      js   short .unable_to_schedule		; < current time? fail it
+  1031 0000003D 41                        inc  ecx					; set ecx = 1
+  1032 0000003E 030D[00080200]            add  ecx, [hra.data_system_time]		; current time + 1 (low)
+  1033 00000044 1335[04080200]            adc  esi, [hra.data_system_time+4]		; current time + 1 (high)
+  1034 0000004A EB14                      jmp  short .startline_validated		; validated
+  1035                                  						;
+  1036                                  .unable_to_schedule_clear_stack:		;
+  1037 0000004C 83C40C                    add  esp, byte 12				; << eax, esi, ecx
+  1038                                  .unable_to_schedule:				;*** Failed Scheduling
+  1039 0000004F 9D                        LEAVE_CRITICAL_SECTION			; restore preemption state
+  1040 00000050 61                        popad						; restore all registers
+  1041 00000051 B802000100                set_err eax, FAILED_SCHEDULING		; set error code
+  1042 00000056 F9                        stc						; set error indicator
+  1043 00000057 C3                        retn						; return to caller
+  1044                                  						;
+  1045                                  .restore_original_startline:			;*** Startline Validated
+  1046 00000058 8B4C241C                  mov  ecx, [esp + 4 + 24]			; reload startline (low)
+  1047 0000005C 8B742408                  mov  esi, [esp + 4 + 4]			; reload startline (high)
+  1048                                  .startline_validated:				;
+  1049                                  						;*** Prepare to Iterate
+  1050 00000060 8B3D[69040000]            mov  edi, [hra.realtime_queue]		; load current queue head
+  1051 00000066 51                        push ecx					; save startline (low)
+  1052 00000067 56                        push esi					; save startline (high)
+  1053 00000068 50                        push eax					; save runlength on TOS
+  1054 00000069 89D0                      mov  eax, edx					; set queue head = new thread
+  1055 0000006B 85FF                      test edi, edi					; check for empty queue
+  1056 0000006D 89440504                  mov  [THRD(ebp,eax,next)], eax		; pre-link new.next
+  1057 00000071 89440508                  mov  [THRD(ebp,eax,previous)], eax		; pre-link new.previous
+  1058 00000075 7426                      jz   short .exit				; if empty, we are done
+  1059                                  						;
+  1060                                  .evaluate_insertion:				;*** 64bit compare startlines
+  1061 00000077 2B4C3D10                  sub  ecx, [THRD(ebp,edi,startline)]		; new's < edi's ? (low)
+  1062 0000007B 1B743D14                  sbb  esi, [THRD(ebp,edi,startline+4)]		; new's < edi's ? (high)
+  1063 0000007F 7935                      jns  short .past_this_node			; if not, goes after edi
+  1064                                  						;
+  1065                                  						;*** verify runlength can fit
+  1066 00000081 030C24                    add  ecx, [esp]				; add runlength
+  1067 00000084 83D600                    adc  esi, byte 0				; carry over
+  1068 00000087 7927                      jns  short .past_this_node_recover		; not < edi's? hop after it
+  1069                                  						;
+  1070                                  .insert_node:					;*** Inserting before EDI
+  1071 00000089 8B743D08                  mov  esi, [THRD(ebp,edi,previous)]		; load 'prev' node
+  1072 0000008D 897C0504                  mov  [THRD(ebp,eax,next)], edi		; set edi as new.next
+  1073 00000091 89740508                  mov  [THRD(ebp,eax,previous)], esi		; set 'prev' as new.previous
+  1074 00000095 89443504                  mov  [THRD(ebp,esi,next)], eax		; update prev.next to new
+  1075 00000099 89443D08                  mov  [THRD(ebp,edi,previous)], eax		; update edi.prev to new
+  1076                                  						;
+  1077                                  .exit:						;*** Complete Scheduling
+  1078 0000009D 8915[69040000]            mov  [hra.realtime_queue], edx		; update queue head
+  1079 000000A3 5A                        pop  edx					; clear runlength from TOS
+  1080 000000A4 8F440514                  pop  dword [THRD(ebp,eax,startline+4)]	; set final startline (high)
+  1081 000000A8 8F440510                  pop  dword [THRD(ebp,eax,startline)]		; set final startline (low)
+  1082 000000AC 9D                        LEAVE_CRITICAL_SECTION			; restore preemption state
+  1083 000000AD 61                        popad						; restore all registers
+  1084 000000AE F8                        clc						; indicate proper completion
+  1085 000000AF C3                        retn						; return without error
+  1086                                  						;
+  1087                                  .past_this_node_recover:			;*** Overlaps, Attempt Next
+  1088 000000B0 2B0C24                    sub  ecx, [esp]				; remove runlength
+  1089 000000B3 83DE00                    sbb  esi, byte 0				; propagate borrow
+  1090                                  .past_this_node:				;*** Check Queue Head
+  1091 000000B6 39C2                      cmp  edx, eax					; queue head == new node?
+  1092 000000B8 7502                      jnz  short .queue_head_set			; if not, leave root node alone
+  1093 000000BA 89FA                      mov  edx, edi					; restore orig queue head
+  1094                                  .queue_head_set:				;*** Attempt to go to next node
+  1095 000000BC 2B4C3D18                  sub  ecx, [THRD(ebp,edi,runlength)]		; runlength of scheduled thrd
+  1096 000000C0 83DE00                    sbb  esi, byte 0				; propagate borrow
+  1097 000000C3 7926                      jns  .to_next_node				; > 0? keep startline/tolerance
+  1098 000000C5 01D9                      add  ecx, ebx					; dig in tolerance
+  1099 000000C7 83D600                    adc  esi, byte 0				; carry over
+  1100 000000CA 89CB                      mov  ebx, ecx					; tolerance = left over
+  1101 000000CC 0F887AFFFFFF              js   near .unable_to_schedule_clear_stack	; tolerance !sufficient? fail
+  1102 000000D2 8B4C3D10                  mov  ecx, [THRD(ebp,edi,startline)]		; load edi's startline (low)
+  1103 000000D6 8B743D14                  mov  esi, [THRD(ebp,edi,startline+4)]		; load edi's startline (high)
+  1104 000000DA 034C3D18                  add  ecx, [THRD(ebp,edi,runlength)]		; add edi's runlength
+  1105 000000DE 83D600                    adc  esi, byte 0				; carry over
+  1106 000000E1 89742404                  mov  [esp + 4], esi				; update saved startline (high)
+  1107 000000E5 894C2408                  mov  [esp + 8], ecx				; update saved startline (low)
+  1108 000000E9 EB08                      jmp  short .to_next_node_startline_set	;
+  1109                                  .to_next_node:					;*** Restore startline
+  1110 000000EB 8B742404                  mov  esi, [esp + 4]				; load startline (high)
+  1111 000000EF 8B4C2408                  mov  ecx, [esp + 8]				; load startline (low)
+  1112                                  .to_next_node_startline_set:			;*** Move to next node
+  1113 000000F3 8B7C3D04                  mov  edi, [THRD(ebp,edi,next)]		; load next node pointer
+  1114 000000F7 3B3D[69040000]            cmp  edi, [hra.realtime_queue]		; end of queue?
+  1115 000000FD 0F8574FFFFFF              jnz  near .evaluate_insertion			;
+  1116 00000103 EB84                      jmp  short .insert_node			;
+  1117                                  ;------------------------------------------------------------[ /hra.schedule ]
+  1118                                  
+  1119                                  
+  1120                                  
+  1121                                  
+  1122                                  
+  1123                                  ;----------------------------------------[ public: hra.set_schedule_callback ]
+  1124                                  hra.set_schedule_callback:
+  1125                                  ;>
+  1126                                  ;; Indicate to the HRA the function to call after the thread is done execution
+  1127                                  ;;
+  1128                                  ;; parameters:
+  1129                                  ;;------------
+  1130                                  ;;  eax: thread to act upon
+  1131                                  ;;  ecx: callback function
+  1132                                  ;;
+  1133                                  ;; returned values:
+  1134                                  ;;-----------------
+  1135                                  ;;  errors and registers as usual
+  1136                                  ;<
+  1137                                  ;-----------------------------------------------------------------------------
+  1138                                    log "hra.set_schedule_callback called"
+  1139 00000105 8988F0070000              mov [eax + (_STACK_SIZE_-_thread_t_size) + _thread_t.schedule_callback], ecx
+  1140 0000010B C3                        retn
+  1141                                  ;-----------------------------------------------[ /hra.set_schedule_callback ]
+  1142                                  
+  1143                                  
+  1144                                  
+  1145                                  
+  1146                                  
+  1147                                  
+  1148                                  ;---------------------------------------------------[ public: hra.unschedule ]
+  1149                                  hra.unschedule:
+  1150                                  ;>
+  1151                                  ;; Unschedule a thread, this thread will not be given control at its set time.
+  1152                                  ;;
+  1153                                  ;; parameters:
+  1154                                  ;;------------
+  1155                                  ;;  eax: thread to act upon
+  1156                                  ;;
+  1157                                  ;; returned values:
+  1158                                  ;;-----------------
+  1159                                  ;;  errors and registers as usual
+  1160                                  ;<
+  1161                                  ;-----------------------------------------------------------------------------
+  1162                                    log "hra.unschedule called"
+  1163 0000010C 60                        pushad
+  1164 0000010D BDD4070000                mov ebp, _STACK_SIZE_ - _thread_t_size
+  1165 00000112 9CFA                      ENTER_CRITICAL_SECTION
+  1166 00000114 8B5C0504                  mov ebx, [THRD(ebp,eax,next)]
+  1167 00000118 85DB                      test ebx, ebx
+  1168 0000011A 7422                      jz short .skip_root_modify
+  1169 0000011C 8B540508                  mov edx, [THRD(ebp,eax,previous)]
+  1170 00000120 895C1504                  mov [THRD(ebp,edx,next)], ebx
+  1171 00000124 89541D08                  mov [THRD(ebp,ebx,previous)], edx
+  1172 00000128 39C3                      cmp ebx, eax
+  1173 0000012A 7512                      jnz short .skip_root_modify
+  1174                                  
+  1175 0000012C 3905[69040000]            cmp [hra.realtime_queue], eax
+  1176 00000132 750A                      jnz short .skip_root_modify
+  1177                                  
+  1178 00000134 C705[69040000]0000-       mov [hra.realtime_queue], dword 0
+  1179 0000013C 0000               
+  1180                                  
+  1181                                  .skip_root_modify:
+  1182 0000013E 3905[08040000]            cmp [tsa.data_current_thread], eax
+  1183 00000144 7403                      jz short .yield_control
+  1184 00000146 9D                        LEAVE_CRITICAL_SECTION
+  1185                                  .exit:
+  1186 00000147 61                        popad
+  1187 00000148 C3                        retn
+  1188                                  
+  1189                                  .yield_control:
+  1190 00000149 0E                        push cs
+  1191 0000014A 68[47010000]              push dword .exit
+  1192 0000014F 60                        pushad
+  1193 00000150 8964050C                  mov  [THRD(ebp,eax,stack_top)], esp
+  1194 00000154 B902000000                mov  ecx, HRA_CC_UNSCHEDULED
+  1195 00000159 FF54051C                  call [THRD(ebp,eax,schedule_callback)]
+  1196 0000015D 89EB                      mov  ebx, ebp
+  1197 0000015F 8B3D[F2030000]            mov  edi, [hra.data_resolution]
+  1198 00000165 E9FE020000                jmp  near __irq_timer.rt_yield
+  1199                                  ;----------------------------------------------------------[ /hra.unschedule ]
+  1200                                  
+  1201                                  
+  1202                                  
+  1203                                  
+  1204                                  ;------------------------------------------------------[ public: ps.schedule ]
+  1205                                  ps.schedule:
+  1206                                  ;>
+  1207                                  ;; Add a thread to the priority scheduled queue.
+  1208                                  ;;
+  1209                                  ;; parameters:
+  1210                                  ;;------------
+  1211                                  ;;  eax: thread to act upon
+  1212                                  ;;
+  1213                                  ;; returned values:
+  1214                                  ;;-----------------
+  1215                                  ;;  errors and registers as usual
+  1216                                  ;<
+  1217                                  ;-----------------------------------------------------------------------------
+  1218                                    log "ps.schedule called"
+  1219 0000016A 60                        pushad
+  1220 0000016B BBD4070000                mov  ebx, _STACK_SIZE_ - _thread_t_size
+  1221 00000170 C7441820[1D040000]        mov  [THRD(eax,ebx,timer_handler)], dword __irq_timer.ps_logic
+  1222 00000178 C744181C00000000          mov  [THRD(eax,ebx,schedule_callback)], dword 0
+  1223 00000180 F8                        clc
+  1224 00000181 9CFA                      ENTER_CRITICAL_SECTION
+  1225 00000183 8B15[41040000]            mov  edx, [ps.priority_queue]
+  1226 00000189 85D2                      test edx, edx
+  1227 0000018B 741C                      jz   short .init_queue
+  1228 0000018D 8B741A08                  mov  esi, [THRD(edx,ebx,previous)]
+  1229 00000191 89441A08                  mov  [THRD(edx,ebx,previous)], eax
+  1230 00000195 89541804                  mov  [THRD(eax,ebx,next)], edx
+  1231 00000199 89741808                  mov  [THRD(eax,ebx,previous)], esi
+  1232 0000019D 89441E04                  mov  [THRD(esi,ebx,next)], eax
+  1233 000001A1 A3[41040000]              mov  [ps.priority_queue], eax
+  1234 000001A6 9D                        LEAVE_CRITICAL_SECTION
+  1235 000001A7 61                        popad
+  1236 000001A8 C3                        retn
+  1237                                  
+  1238                                  .init_queue:
+  1239 000001A9 89441804                  mov  [THRD(eax,ebx,next)], eax
+  1240 000001AD 89441808                  mov  [THRD(eax,ebx,previous)], eax
+  1241 000001B1 A3[41040000]              mov  [ps.priority_queue], eax
+  1242 000001B6 9D                        LEAVE_CRITICAL_SECTION
+  1243 000001B7 61                        popad
+  1244 000001B8 C3                        retn
+  1245                                  ;-------------------------------------------------------------[ /ps.schedule ]
+  1246                                  
+  1247                                  
+  1248                                  
+  1249                                  
+  1250                                  
+  1251                                  ;--------------------------------------------------[ public: ps.set_priority ]
+  1252                                  ps.set_priority:
+  1253                                  ;>
+  1254                                  ;; Modify the priority associated with a thread
+  1255                                  ;;
+  1256                                  ;; parameters:
+  1257                                  ;;------------
+  1258                                  ;;  eax: thread to act upon
+  1259                                  ;;  ecx: new priority level
+  1260                                  ;;
+  1261                                  ;; returned values:
+  1262                                  ;;-----------------
+  1263                                  ;;  eax: priority assigned
+  1264                                  ;;  errors and registers as usual
+  1265                                  ;<
+  1266                                  ;-----------------------------------------------------------------------------
+  1267                                    log "ps.set_priority called"
+  1268 000001B9 53                        push ebx
+  1269 000001BA 52                        push edx
+  1270 000001BB 51                        push ecx
+  1271 000001BC 81F919000000              cmp  ecx, dword _PRIORITY_CEILING_
+  1272                                  ps.data_priority_ceiling EQU $-4
+  1273 000001C2 8D98D4070000              lea  ebx, [eax + (_STACK_SIZE_-_thread_t_size)]
+  1274 000001C8 7605                      jbe  short .priority_set
+  1275 000001CA B919000000                mov  ecx, _PRIORITY_CEILING_
+  1276                                  .priority_set:
+  1277 000001CF A1[F2030000]              mov  eax, dword [hra.data_resolution]
+  1278 000001D4 F7E1                      mul  ecx
+  1279 000001D6 894310                    mov  [ebx + _thread_t.priority], eax
+  1280 000001D9 59                        pop  ecx
+  1281 000001DA 5A                        pop  edx
+  1282 000001DB 5B                        pop  ebx
+  1283 000001DC F8                        clc
+  1284 000001DD C3                        retn
+  1285                                  ;---------------------------------------------------------[ /ps.set_priority ]
+  1286                                  
+  1287                                  
+  1288                                  
+  1289                                  ;----------------------------------------------------[ public: ps.unschedule ]
+  1290                                  ps.unschedule:
+  1291                                  ;>
+  1292                                  ;; Remove a thread from the priority scheduled queue.
+  1293                                  ;;
+  1294                                  ;; parameters:
+  1295                                  ;;------------
+  1296                                  ;;  eax: thread to act upon
+  1297                                  ;;
+  1298                                  ;; returned values:
+  1299                                  ;;-----------------
+  1300                                  ;;  errors and registers as usual
+  1301                                  ;<
+  1302                                  ;-----------------------------------------------------------------------------
+  1303                                    log "ps.unschedule called"			;
+  1304 000001DE 60                        pushad					; backup original registers
+  1305 000001DF 31F6                      xor  esi, esi					; create a NULL register
+  1306 000001E1 9CFA                      ENTER_CRITICAL_SECTION			; disable preemption
+  1307 000001E3 BBD4070000                mov  ebx, _STACK_SIZE_ - _thread_t_size	; compute _thread_t offset
+  1308                                  						;
+  1309                                  						;*** check thread status
+  1310 000001E8 39741804                  cmp  dword [eax + ebx + _thread_t.next], esi  ; is thread scheduled?
+  1311 000001EC 742C                      jz   short .exit				; if not, bypass unscheduling
+  1312                                  						;
+  1313                                  						;*** unschedule thread
+  1314 000001EE 8B4C1804                  mov  ecx, [THRD(eax,ebx,next)]		; load 'next' pointer
+  1315 000001F2 8B541808                  mov  edx, [THRD(eax,ebx,previous)]		; load 'previous' pointer
+  1316 000001F6 894C1A04                  mov  [THRD(edx,ebx,next)], ecx		; link 'previous' to 'next'
+  1317 000001FA 89541908                  mov  [THRD(ecx,ebx,previous)], edx		; link 'next' to 'previous'
+  1318 000001FE 89741804                  mov  [THRD(eax,ebx,next)],  esi		; set to 'next' to NULL
+  1319 00000202 89741808                  mov  [THRD(eax,ebx,previous)], esi		; set to 'previous' to NULL
+  1320 00000206 39C1                      cmp  ecx, eax					; thread was last of queue?
+  1321 00000208 7502                      jnz  short .check_queue			; -> no: keep 'next' pointer
+  1322 0000020A 89F1                      mov  ecx, esi					; set 'next' as NULL pointer
+  1323                                  .check_queue:					;
+  1324 0000020C 3905[41040000]            cmp  [ps.priority_queue], eax			; unscheduled was queue head?
+  1325 00000212 7506                      jnz  short .exit				; no, leave queue head alone
+  1326 00000214 890D[41040000]            mov  [ps.priority_queue], ecx			; update queue head
+  1327                                  .exit:						;
+  1328 0000021A 3905[08040000]            cmp  [tsa.data_current_thread], eax		; unscheduling running thread?
+  1329 00000220 7403                      jz   short .yield				; -> yes: yield control
+  1330 00000222 9D                        LEAVE_CRITICAL_SECTION			; restore preemption state
+  1331 00000223 61                        popad						; restore original registers
+  1332 00000224 C3                        retn						; return to caller
+  1333                                  						;
+  1334                                  .yield:						;*** yield control
+  1335                                  						; ENTER_CRITICAL_SECTION pushed EFLAGS
+  1336 00000225 0E                        push cs					; >> cs, eflags
+  1337 00000226 C744181801000000          mov  [THRD(eax,ebx,runlength)], dword 1	;
+  1338 0000022E E8B3010000                call __soft_irq_timer				; >> eip, cs, eflags
+  1339 00000233 61                        popad						; restore original registers
+  1340 00000234 C3                        retn						; return to caller
+  1341                                  ;-----------------------------------------------------------[ /ps.unschedule ]
+  1342                                  
+  1343                                  
+  1344                                  
+  1345                                  
+  1346                                  
+  1347                                  
+  1348                                  
+  1349                                  ;-----------------------------------------------[ public: tsa.acquire_thread ]
+  1350                                  tsa.acquire_thread:
+  1351                                  ;>
+  1352                                  ;; Acquire a free thread entry, this thread can be scheduled as either 
+  1353                                  ;; realtime or priority based.
+  1354                                  ;;
+  1355                                  ;; parameters:
+  1356                                  ;;------------
+  1357                                  ;;  edx: resource pool
+  1358                                  ;;
+  1359                                  ;; returned values:
+  1360                                  ;;-----------------
+  1361                                  ;;  eax: thread ID
+  1362                                  ;;  errors and registers as usual
+  1363                                  ;<
+  1364                                  ;-----------------------------------------------------------------------------
+  1365                                    log "tsa.acquire_thread called"
+  1366 00000235 56                        push  esi					; >> esi
+  1367 00000236 51                        push  ecx					; >> ecx, esi
+  1368                                  %if _THREAD_BLOCKS_ > 255
+  1369                                    %error "_THREAD_BLOCKS_ valid range is 0-255"
+  1370                                  %endif
+  1371 00000237 B802000000                mov   eax, _THREAD_BLOCKS_			; set number of thread blocks
+  1372 0000023C BE[00000000]              mov   esi, tsa.data_alloc_bitmap		; ptr to thread alloc bitmap
+  1373                                  .scan_block:					;
+  1374 00000241 9CFA                      ENTER_CRITICAL_SECTION			; disable preemption
+  1375 00000243 0FBC0E                    bsf   ecx, dword [esi]			; scan for a free thread (1)
+  1376 00000246 741C                      jz    short .try_next_block			; if none found (all 0)
+  1377                                  						;
+  1378 00000248 B001                      mov   al, 1					; set eax = 1
+  1379 0000024A D3E0                      shl   eax, cl					; select thread identity bit
+  1380 0000024C 3106                      xor   [esi], eax				; invert it (set to 0)
+  1381 0000024E 9D                        LEAVE_CRITICAL_SECTION			; restore preemption state
+  1382 0000024F 81EE[00000000]            sub   esi, tsa.data_alloc_bitmap		; get block id*4
+  1383 00000255 8D04F1                    lea   eax, [esi*8 + ecx]			; compute thread number
+  1384 00000258 C1E00B                    shl   eax, _LOG_STACK_SIZE_			; find its offset
+  1385 0000025B 59                        pop   ecx					; << ecx, esi
+  1386 0000025C 05[00000000]              add   eax, threads				; compute thread ID
+  1387 00000261 5E                        pop   esi					; << esi
+  1388                                    ;; TODO: add thread to resource pool
+  1389 00000262 F8                        clc						; indicate success
+  1390 00000263 C3                        retn						; -done- EAX: Thread ID
+  1391                                  						;
+  1392                                  .try_next_block:				;
+  1393 00000264 9D                        LEAVE_CRITICAL_SECTION			; restore preemption state
+  1394 00000265 83C604                    add   esi, byte 4				; point to next block bitmap
+  1395 00000268 48                        dec   eax					; check for another block
+  1396 00000269 75D6                      jnz   short .scan_block			; yes, valid block, proceed
+  1397 0000026B F9                        stc						; indicate error
+  1398 0000026C B801000100                set_err eax, OUT_OF_THREADS			; set error code
+  1399 00000271 59                        pop   ecx					; << ecx, esi
+  1400 00000272 5E                        pop   esi					; << esi
+  1401 00000273 C3                        retn						; -done- ERR: OUT OF THREADS
+  1402                                  ;------------------------------------------------------[ /tsa.acquire_thread ]
+  1403                                  
+  1404                                  
+  1405                                  
+  1406                                  
+  1407                                  __kill_self:
+  1408                                  ;-----------------------------------------------------------------------------
+  1409 00000274 A1[08040000]              mov eax, [tsa.data_current_thread]
+  1410                                  ;  jmp tsa.release_thread
+  1411                                  ;-----------------------------------------------------------------------------
+  1412                                  ;-----------------------------------------------[ public: tsa.release_thread ]
+  1413                                  tsa.release_thread:
+  1414                                  ;>
+  1415                                  ;; Unschedule and release a thread.  Calling this function for the thread
+  1416                                  ;; currently executing will cause it to be killed and control will NOT be
+  1417                                  ;; returned.
+  1418                                  ;;
+  1419                                  ;; parameters:
+  1420                                  ;;------------
+  1421                                  ;;  eax: thread to act upon
+  1422                                  ;;
+  1423                                  ;; returned values:
+  1424                                  ;;-----------------
+  1425                                  ;;  errors and registers as usual
+  1426                                  ;<
+  1427                                  ;-----------------------------------------------------------------------------
+  1428                                    log "tsa.release_thread called"
+  1429 00000279 56                        push esi					; >> esi
+  1430 0000027A 51                        push ecx					; >> ecx, esi
+  1431 0000027B 50                        push eax					; >> eax, ecx, esi
+  1432 0000027C 2D[00000000]              sub eax, threads				;
+  1433 00000281 BE01000000                mov esi, 1					;
+  1434 00000286 89C1                      mov ecx, eax					;
+  1435 00000288 C1E808                    shr eax, 8					; get alloc bitmap
+  1436 0000028B C1E90B                    shr ecx, _LOG_STACK_SIZE_			; get thread id
+  1437 0000028E 05[00000000]              add eax, tsa.data_alloc_bitmap		;
+  1438 00000293 83E11F                    and ecx, byte 0x1F				; range 0-31
+  1439 00000296 D3E6                      shl esi, cl					; select associated thread bit
+  1440 00000298 59                        pop ecx					; << eax, ecx, esi
+  1441                                  						; ecx = thread acted upon
+  1442 00000299 9CFA                      ENTER_CRITICAL_SECTION			; prevent pre-emption
+  1443 0000029B 0930                      or [eax], esi					; set thread bit to 1
+  1444                                  						;
+  1445 0000029D 89C8                      mov eax, ecx					; eax = thread acted upon
+  1446 0000029F BA[0C010000]              mov edx, hra.unschedule			; preference for realtime
+  1447 000002A4 83B9F007000000            cmp dword [ecx + (_STACK_SIZE_-_thread_t_size) + _thread_t.schedule_callback], byte 0; PS or HRA?
+  1448 000002AB 7505                      jnz short .hra				; callback != 0 => HRA
+  1449                                  						;
+  1450 000002AD BA[DE010000]              mov edx, ps.unschedule			; priority based it is
+  1451                                  						;
+  1452                                  .hra:						;
+  1453 000002B2 FFD2                      call edx					; unschedule
+  1454 000002B4 9D                        LEAVE_CRITICAL_SECTION			; release cpu lock
+  1455 000002B5 59                        pop ecx					; << ecx, esi
+  1456 000002B6 5E                        pop esi					; << esi
+  1457 000002B7 C3                        retn						;
+  1458                                  ;------------------------------------------------------[ /tsa.release_thread ]
+  1459                                  
+  1460                                  
+  1461                                  
+  1462                                  
+  1463                                  
+  1464                                  ;------------------------------------------[ public: tsa.set_initial_values ]
+  1465                                  tsa.set_initial_values:
+  1466                                  ;>
+  1467                                  ;; Set the initial registers values and initial EIP address of the given
+  1468                                  ;; thread.  Note the thread must _NOT_ be scheduled when calling this
+  1469                                  ;; function.
+  1470                                  ;;
+  1471                                  ;; parameters:
+  1472                                  ;;------------
+  1473                                  ;;  eax, ecx, edx, ebx, esi, edi, ebp: values to set
+  1474                                  ;;  stack +0: EIP to use.
+  1475                                  ;;  stack +4: thread to act upon
+  1476                                  ;;
+  1477                                  ;; returned values:
+  1478                                  ;;-----------------
+  1479                                  ;;  errors and registers as usual
+  1480                                  ;<
+  1481                                  ;-----------------------------------------------------------------------------
+  1482                                    log "tsa.set_starting_value called"
+  1483 000002B8 60                        pushad		;
+  1484 000002B9 60                        pushad		; >> edi, esi, ebp, esp, ebx, edx, ecx, eax
+  1485 000002BA 8B442448                  mov	eax, [esp + 64 +  8]			; retrieve thread to act upon
+  1486 000002BE 31F6                      xor   esi, esi				; set NULL pointer
+  1487 000002C0 BBD4070000                mov	ebx, _STACK_SIZE_ - _thread_t_size	; disp to _thread_t structure
+  1488 000002C5 8B4C2444                  mov   ecx, [esp + 64 +  4]			; retrieve initial EIP
+  1489 000002C9 8B15[F2030000]            mov   edx, [hra.data_resolution]		; load time resolution
+  1490 000002CF 89741804                  mov   [THRD(eax,ebx,next)], esi		; loop back queue next ptr
+  1491 000002D3 89741808                  mov	[THRD(eax,ebx,previous)], esi		; loop back queue previous ptr
+  1492 000002D7 89541810                  mov   [THRD(eax,ebx,priority)], edx		; priority level 1
+  1493 000002DB 8D5418D0                  lea	edx, [byte eax + ebx - 48]		; compute top of stack address
+  1494 000002DF 8954180C                  mov	[THRD(eax,ebx,stack_top)], edx		; set top of stack
+  1495 000002E3 8F02                      pop	dword [edx]				; initial edi
+  1496 000002E5 8F4204                    pop	dword [byte edx + 4]			; initial esi
+  1497 000002E8 8F4208                    pop	dword [byte edx + 8]			; initial ebp
+  1498 000002EB 5E                        pop   esi					; clear out initial esp
+  1499 000002EC 8F4210                    pop	dword [byte edx + 16]			; initial ebx
+  1500 000002EF 8F4214                    pop	dword [byte edx + 20]			; initial edx
+  1501 000002F2 8F4218                    pop	dword [byte edx + 24]			; initial ecx
+  1502 000002F5 8F421C                    pop	dword [byte edx + 28]			; initial eax
+  1503 000002F8 894A20                    mov	[byte edx + 32], ecx			; set initial EIP
+  1504 000002FB 8C4A24                    mov	[byte edx + 36], cs			; set initial CS
+  1505 000002FE C7422802020000            mov	[byte edx + 40], dword _THREAD_INITIAL_EFLAGS_
+  1506 00000305 C7422C[74020000]          mov   [byte edx + 44], dword __kill_self	;
+  1507 0000030C 61                        popad						;
+  1508 0000030D C3                        retn						;
+  1509                                  ;-------------------------------------------------[ /tsa.set_starting_values ]
+  1510                                  
+  1511                                  
+  1512                                  
+  1513                                  
+  1514                                  ;--------------------------------------------------------[ public: tsa.yield ]
+  1515                                  tsa.yield:
+  1516                                  ;>
+  1517                                  ;; Yield the control to the next scheduled thread.
+  1518                                  ;;
+  1519                                  ;; parameters:
+  1520                                  ;;------------
+  1521                                  ;;  none
+  1522                                  ;;
+  1523                                  ;; returned values:
+  1524                                  ;;-----------------
+  1525                                  ;;  eax destroyed, no return values.
+  1526                                  ;<
+  1527                                  ;-----------------------------------------------------------------------------
+  1528                                    log "tsa.yield called"
+  1529 0000030E A1[08040000]              mov  eax, [tsa.data_current_thread]
+  1530 00000313 C780EC070000010000-       mov  [eax + (_STACK_SIZE_-_thread_t_size) + _thread_t.runlength], dword 1
+  1531 0000031C 00                 
+  1532 0000031D 9C                        pushfd
+  1533 0000031E 0E                        push cs
+  1534 0000031F E8C2000000                call __soft_irq_timer
+  1535 00000324 C3                        retn
+  1536                                  ;---------------------------------------------------------------[ /tsa.yield ]
+  1537                                  
+  1538                                  
+  1539                                  
+  1540                                  
+  1541                                  sem.acquire_lock:
+  1542                                  ;---------------------------------------------------------[ sem.acquire_lock ]
+  1543                                  ;>
+  1544                                  ;; Fallback function for the SEM_ACQUIRE_LOCK() macro.
+  1545                                  ;;
+  1546                                  ;; WARNING: DO NOT CALL THIS FUNCTION DIRECTLY, USE THE MACROS PROVIDED IN
+  1547                                  ;;          'include/thread.inc'.
+  1548                                  ;;
+  1549                                  ;; parameters:
+  1550                                  ;;------------
+  1551                                  ;; eax = pointer to semaphore to act upon
+  1552                                  ;;
+  1553                                  ;; returns:
+  1554                                  ;;---------
+  1555                                  ;; errors and registers as usual
+  1556                                  ;<
+  1557                                  ;-----------------------------------------------------------------------------
+  1558 00000325 9CFA                      ENTER_CRITICAL_SECTION			; disable preemption
+  1559 00000327 833800                    cmp  dword [eax + semaphore_t.count], byte 0	; 
+  1560 0000032A 7D55                      jge   short .acquired				;
+  1561                                  						;
+  1562                                  .failed:					;
+  1563 0000032C 60                        pushad					; save registers value
+  1564 0000032D 8B1D[08040000]            mov  ebx, [tsa.data_current_thread]		; load current thread ID
+  1565 00000333 BDD4070000                mov  ebp, _STACK_SIZE_ - _thread_t_size	; compute offset to _thread_t
+  1566 00000338 8B742B04                  mov  esi, [THRD(ebx,ebp,next)]		;
+  1567 0000033C 8B7C2B08                  mov  edi, [THRD(ebx,ebp,previous)]		;
+  1568                                  						;
+  1569 00000340 85F6                      test esi, esi					; Locking in realtime?
+  1570 00000342 7440                      jz   short .realtime				; if so, don't allow it
+  1571 00000344 89742F04                  mov  [THRD(edi,ebp,next)], esi		; link 'next' to 'previous'
+  1572 00000348 897C2E08                  mov  [THRD(esi,ebp,previous)], edi		; link 'previous' to 'next'
+  1573                                  						;
+  1574 0000034C 8B4804                    mov  ecx, [eax + semaphore_t.wait_queue]	; load queue head
+  1575 0000034F 85C9                      test ecx, ecx					; queue initialized?
+  1576 00000351 743C                      jz   short .init_wait_queue			; if not, initialize it
+  1577                                  						;
+  1578 00000353 8B542908                  mov  edx, [THRD(ecx,ebp,previous)]		;*** Add To Queue
+  1579 00000357 894C2B04                  mov  [THRD(ebx,ebp,next)], ecx		; set 'head' as next
+  1580 0000035B 89542B08                  mov  [THRD(ebx,ebp,previous)], edx		; set 'tail' as previous
+  1581 0000035F 895C2A04                  mov  [THRD(edx,ebp,next)], ebx		; set next of 'tail'
+  1582 00000363 895C2908                  mov  [THRD(ecx,ebp,previous)], ebx		; set previous of 'head'
+  1583                                  						;
+  1584                                  .sleep:						;*** Unschedule Thread
+  1585 00000367 31C0                      xor  eax, eax					; set NULL pointer
+  1586 00000369 39DE                      cmp  esi, ebx					; 'next' == current thread?
+  1587 0000036B 7502                      jnz  short .set_priority_queue		; if not, don't worry
+  1588 0000036D 89C6                      mov  esi, eax					; set queue head to NULL
+  1589                                  .set_priority_queue:				;
+  1590 0000036F 8935[41040000]            mov  [ps.priority_queue], esi			; update priority queue
+  1591                                  						;
+  1592                                  						;*** Go To Sleep
+  1593 00000375 9C                        pushfd					; flags for iretd
+  1594 00000376 0E                        push cs					; code segment for iretd
+  1595 00000377 89442B18                  mov  [THRD(ebx,ebp,runlength)], eax		; set runlength to 0
+  1596 0000037B E866000000                call __soft_irq_timer				; yield control and wait
+  1597 00000380 61                        popad						; restore registers value
+  1598                                  						;
+  1599                                  .acquired:					;*** Lock Acquired
+  1600 00000381 9D                        LEAVE_CRITICAL_SECTION			; restore preemption state
+  1601 00000382 F8                        clc						; indicate completion
+  1602 00000383 C3                        retn						;
+  1603                                  						;
+  1604                                  .realtime:					;*** Realtime lock failed
+  1605 00000384 FF00                      inc  dword [eax + semaphore_t.count]		; undo SEM_DOWN()
+  1606 00000386 61                        popad						; restore registers
+  1607 00000387 9D                        LEAVE_CRITICAL_SECTION			; restore preemption state
+  1608 00000388 B803000100                set_err eax, LOCK_FAILED			; set error code
+  1609 0000038D F9                        stc						; set error flag
+  1610 0000038E C3                        retn						; return to realtime thread
+  1611                                  						;
+  1612                                  .init_wait_queue:				;*** Initialize Wait Queue
+  1613 0000038F 895C2B04                  mov [THRD(ebx,ebp,next)], ebx			; loop back 'next'
+  1614 00000393 895C2B08                  mov [THRD(ebx,ebp,previous)], ebx		; loop back 'previous'
+  1615 00000397 895804                    mov [eax + semaphore_t.wait_queue], ebx	; set queue head
+  1616 0000039A EBCB                      jmp short .sleep				; wait until a lock release
+  1617                                  ;----------------------------------------------------------------[ /sem.lock ]
+  1618                                  
+  1619                                  
+  1620                                  
+  1621                                  
+  1622                                  
+  1623                                  
+  1624                                  sem.release_lock:
+  1625                                  ;---------------------------------------------------------[ sem.release_lock ]
+  1626                                  ;>
+  1627                                  ;; Fallback for the SEM_RELEASE_LOCK() macro.
+  1628                                  ;;
+  1629                                  ;; WARNING: DO NOT CALL THIS FUNCTION DIRECTLY, USE THE MACROS DEFINED IN
+  1630                                  ;;          'include/thread.inc'.
+  1631                                  ;;
+  1632                                  ;; parameters:
+  1633                                  ;;------------
+  1634                                  ;; eax = pointer to semaphore to act upon
+  1635                                  ;;
+  1636                                  ;; returns:
+  1637                                  ;;---------
+  1638                                  ;; errors and registers as usual
+  1639                                  ;<
+  1640                                  ;-----------------------------------------------------------------------------
+  1641 0000039C 9CFA                      ENTER_CRITICAL_SECTION
+  1642 0000039E 60                        pushad
+  1643 0000039F 89C3                      mov  ebx, eax
+  1644 000003A1 8B4304                    mov  eax, [ebx + semaphore_t.wait_queue]
+  1645 000003A4 85C0                      test eax, eax
+  1646 000003A6 742D                      jz short .exit
+  1647                                    
+  1648 000003A8 BDD4070000                mov  ebp, _STACK_SIZE_ - _thread_t_size
+  1649 000003AD 31D2                      xor  edx, edx
+  1650 000003AF 8B742804                  mov  esi, [THRD(eax,ebp,next)]
+  1651 000003B3 8B7C2808                  mov  edi, [THRD(eax,ebp,previous)]
+  1652 000003B7 89742F04                  mov  [THRD(edi,ebp,next)], esi
+  1653 000003BB 897C2E08                  mov  [THRD(esi,ebp,previous)], edi
+  1654 000003BF 89542804                  mov  [THRD(eax,ebp,next)], edx
+  1655 000003C3 89542808                  mov  [THRD(eax,ebp,previous)], edx
+  1656 000003C7 39C6                      cmp  esi, eax
+  1657 000003C9 7502                      jnz  short .update_queue_head
+  1658 000003CB 89D6                      mov  esi, edx
+  1659                                  .update_queue_head:
+  1660 000003CD 897304                    mov  [ebx + semaphore_t.wait_queue], esi
+  1661 000003D0 E895FDFFFF                call ps.schedule
+  1662                                  
+  1663                                  .exit:
+  1664 000003D5 61                        popad
+  1665 000003D6 9D                        LEAVE_CRITICAL_SECTION
+  1666 000003D7 C3                        retn
+  1667                                  ;---------------------------------------------------------[ /sem.release_lock ]
+  1668                                  
+  1669                                  
+  1670                                  
+  1671                                  sem.try_acquire_lock:
+  1672                                  ;------------------------------------------------------[ sem.try_acquire_lock ]
+  1673                                  ;>
+  1674                                  ;; Fallback for the SEM_TRY_ACQUIRE_LOCK() macro.
+  1675                                  ;;
+  1676                                  ;; WARNING: DO NOT CALL THIS FUNCTION DIRECTLY, USE THE MACROS DEFINED IN
+  1677                                  ;;          'include/thread.inc'
+  1678                                  ;;
+  1679                                  ;; parameters:
+  1680                                  ;;------------
+  1681                                  ;; eax = pointer to semaphore to act upon
+  1682                                  ;;
+  1683                                  ;; returns:
+  1684                                  ;;---------
+  1685                                  ;; errors and registers as usual
+  1686                                  ;<
+  1687                                  ;------------------------------------------------------------------------------
+  1688 000003D8 9CFA                      ENTER_CRITICAL_SECTION
+  1689 000003DA FF00                      inc dword [eax + semaphore_t.count]
+  1690 000003DC 7F03                      jg short .acquired
+  1691 000003DE 9D                        LEAVE_CRITICAL_SECTION
+  1692 000003DF F9                        stc
+  1693 000003E0 C3                        retn
+  1694                                  .acquired:
+  1695 000003E1 FF08                      dec dword [eax + semaphore_t.count]
+  1696 000003E3 9D                        LEAVE_CRITICAL_SECTION
+  1697 000003E4 F8                        clc
+  1698 000003E5 C3                        retn
+  1699                                  ;-----------------------------------------------------[ /sem.try_acquire_lock ]
+  1700                                  
+  1701                                  
+  1702                                  
+  1703                                  
+  1704                                  ;__latch_timer:
+  1705                                  ;;------------------------------------------------------------[ latch timer ]--
+  1706                                  ;;>
+  1707                                  ;;; Returns the number of microseconds before the currently set timer expires
+  1708                                  ;;;
+  1709                                  ;;; parameters
+  1710                                  ;;; ----------
+  1711                                  ;;; none
+  1712                                  ;;;
+  1713                                  ;;; returns
+  1714                                  ;;; -------
+  1715                                  ;;; edx:eax - number of microseconds until interruption
+  1716                                  ;;<
+  1717                                  ;;-----------------------------------------------------------------------------
+  1718                                  ;   xor  eax, eax				; set eax to 0
+  1719                                  ;   out  0x43, al				; send 'latch' command for channel 0
+  1720                                  ;   io_delay					; give it some time
+  1721                                  ;   io_delay					;
+  1722                                  ;   in   al, 0x40				; latch 'LSB'
+  1723                                  ;   mov  ah, al					; back it up in ah
+  1724                                  ;   io_delay					; give it some time to update itself
+  1725                                  ;   in   al, 0x40				; latch 'MSB'
+  1726                                  ;   mov  edx, _PIT_ADJ_DIV_			; magic value as detailed above
+  1727                                  ;   xchg ah, al					; swap 'MSB' and 'LSB' in their place
+  1728                                  ;   shl  eax, _PIT_ADJ_SHIFT_REQUIRED_		; adjust value for some magic
+  1729                                  ;   mul  edx					; compute microseconds equivalent
+  1730                                  ;   retn					; return to caller
+  1731                                  ;;-----------------------------------------------------------------------------
+  1732                                  
+  1733                                  
+  1734                                  
+  1735                                  ;-----------------------------------------------------------------------------
+  1736                                  __soft_irq_timer:				;
+  1737 000003E6 60                        pushad					; backup all register values
+  1738 000003E7 FA                        cli						; disable preemption
+  1739 000003E8 8B3D[F2030000]            mov edi, [hra.data_resolution]		;
+  1740 000003EE EB17                      jmp short __irq_timer.soft_irq		; bypass time and irq code
+  1741                                  ;-----------------------------------------------------------------------------
+  1742                                  __irq_timer:
+  1743                                  ;-----------------------------------------------------------------------------
+  1744 000003F0 60                        pushad					; backup all register values
+  1745 000003F1 BF64000000                mov edi, _DEFAULT_RESOLUTION_			; (SMC): timer resolution
+  1746                                  hra.data_resolution EQU $-4			;-(SMC): embedded variable
+  1747                                  						;*** Update System Time
+  1748 000003F6 013D[00080200]            add  dword [hra.data_system_time], edi	; add timer resolution
+  1749 000003FC 8315[04080200]00          adc  dword [hra.data_system_time+4], byte 0	; carry over
+  1750                                  						;
+  1751                                  						;*** Acknowledge IRQ
+  1752 00000403 B060                      mov  al, 0x60					; Specific EOI IRQ 0
+  1753 00000405 E620                      out  0x20, al					; send it to master PIC
+  1754                                  						;
+  1755                                  .soft_irq:					;*** Check Current Thread State
+  1756 00000407 B800000000                mov  eax, 0					; (SMC) load current thread
+  1757                                  tsa.data_current_thread EQU $-4			;-(SMC): embedded variable
+  1758 0000040C BBD4070000                mov  ebx, _STACK_SIZE_ - _thread_t_size	; compute _thread_t offset
+  1759 00000411 8964180C                  mov  [THRD(eax,ebx,stack_top)], esp		; save stack top (ESP)
+  1760                                  						;
+  1761 00000415 297C1818                  sub  [THRD(eax,ebx,runlength)], edi		; countdown runlength
+  1762 00000419 FF641820                  jmp  [eax + ebx + _thread_t.timer_handler]	; jump to specific handler
+  1763                                  						;
+  1764                                  .ps_logic:					;*** Priority Based Logic
+  1765 0000041D 9C                        pushfd					; save expire check result
+  1766                                  						;
+  1767                                  						; check for RT schedule
+  1768 0000041E A1[69040000]              mov  eax, [hra.realtime_queue]		; load RT queue head
+  1769 00000423 85C0                      test eax, eax					; check if queue is empty
+  1770 00000425 7416                      jz   short .no_rt				; if empty, priority based
+  1771                                  						;
+  1772 00000427 8B0D[00080200]            mov  ecx, [hra.data_system_time]		; current system time (low)
+  1773 0000042D 8B15[04080200]            mov  edx, [hra.data_system_time+4]		; current system time (high)
+  1774 00000433 2B4C1810                  sub  ecx, [THRD(eax,ebx,startline)]		; check thread start line (low)
+  1775 00000437 1B541814                  sbb  edx, [THRD(eax,ebx,startline+4)]		; check thread start line (high)
+  1776 0000043B 794A                      jns  short .ps_fallin				; current >= start: RT ready
+  1777                                  						;
+  1778                                  .no_rt:						; no RT to schedule
+  1779 0000043D 9D                        popfd						; retrieve expire check result
+  1780 0000043E 777A                      ja  short .exit				; if not expired: let it be
+  1781                                  						;
+  1782                                  .rt_fallback:					;*** Priority Thread selected
+  1783 00000440 B800000000                mov  eax, 0					; (SMC) load priority queue head
+  1784                                  ps.priority_queue EQU $-4			;-(SMC): embedded variable
+  1785 00000445 85C0                      test eax, eax					; queue is empty?
+  1786 00000447 7473                      jz  short .set_idle				; if empty, idle for one cycle
+  1787                                  						;
+  1788 00000449 8B4C1810                  mov  ecx, [THRD(eax,ebx,priority)]		; load thread priority
+  1789 0000044D 8B541804                  mov  edx, [THRD(eax,ebx,next)]		; load 'next' priority thread
+  1790 00000451 894C1818                  mov  [THRD(eax,ebx,runlength)], ecx		; set runlength = priority
+  1791 00000455 8915[41040000]            mov  [ps.priority_queue], edx			; update priority queue head
+  1792 0000045B EB54                      jmp  short .load_thread			; activate the new thread
+  1793                                  						;
+  1794                                  .rt_logic:					;*** Check RT thread expiration
+  1795 0000045D 775B                      ja short .exit				; if not expired, let it be
+  1796                                  						;
+  1797                                  						;*** thread expired, notify CB
+  1798 0000045F B900000000                mov  ecx, HRA_CC_EXPIRED			; set Completion Code
+  1799 00000464 FF54181C                  call [THRD(eax,ebx,schedule_callback)]	; call schedule callback
+  1800                                  						;
+  1801                                  .rt_yield:					;
+  1802                                  						;*** Check for ready RT thread
+  1803 00000468 B800000000                mov  eax, 0					; (SMC) load queue head
+  1804                                  hra.realtime_queue EQU $-4			;-(SMC): embedded variable
+  1805 0000046D 85C0                      test eax, eax					; check for empty queue
+  1806 0000046F 74CF                      jz   short .rt_fallback			; empty? priority scheduling
+  1807                                    						;
+  1808 00000471 8B0D[00080200]            mov  ecx, [hra.data_system_time]		; current system time (low)
+  1809 00000477 8B15[04080200]            mov  edx, [hra.data_system_time+4]		; current system time (high)
+  1810 0000047D 2B4C1810                  sub  ecx, [THRD(eax,ebx,startline)]		; check thread start line (low)
+  1811 00000481 1B541814                  sbb  edx, [THRD(eax,ebx,startline+4)]		; check thread start line (high)
+  1812 00000485 72B9                      jb   short .rt_fallback			; current < start: not ready
+  1813                                  						;
+  1814                                  .ps_fallin:					;*** Realtime Thread selected
+  1815 00000487 8B4C1804                  mov  ecx, [THRD(eax,ebx,next)]		; load 'next' pointer
+  1816 0000048B 8B541808                  mov  edx, [THRD(eax,ebx,previous)]		; load 'previous' pointer
+  1817 0000048F 31F6                      xor  esi, esi					; create NULL pointer
+  1818 00000491 894C1A04                  mov  [THRD(edx,ebx,next)], ecx		; link 'previous' to 'next'
+  1819 00000495 89541908                  mov  [THRD(ecx,ebx,previous)], edx		; link 'next' to 'previous'
+  1820 00000499 89741804                  mov  [THRD(eax,ebx,next)], esi		; unlink 'next' pointer
+  1821 0000049D 89741808                  mov  [THRD(eax,ebx,previous)], esi		; unlink 'previous' pointer
+  1822 000004A1 890D[69040000]            mov  [hra.realtime_queue], ecx		; update RT queue head
+  1823 000004A7 29C1                      sub  ecx, eax					; was last in queue?
+  1824 000004A9 7506                      jnz  short .load_thread			; if not, just load new thread
+  1825 000004AB 890D[69040000]            mov  [hra.realtime_queue], ecx		; set queue to NULL
+  1826                                  						;
+  1827                                  .load_thread:					;*** Load Selected Thread
+  1828 000004B1 8B64180C                  mov  esp, [THRD(eax,ebx,stack_top)]		; load stack top pointer (ESP)
+  1829 000004B5 A3[08040000]              mov  [tsa.data_current_thread], eax		; set as current thread
+  1830                                  						;
+  1831                                  .exit:						;*** (Re)Activate Thread
+  1832 000004BA 61                        popad						; restore all registers
+  1833 000004BB CF                        iretd						; transfer full control
+  1834                                  						;
+  1835                                  .set_idle:					;*** Idle Thread selected
+  1836 000004BC B8[00000200]              mov eax, idle_thread				; get idle thread pointer
+  1837 000004C1 8D0C18                    lea ecx, [eax + ebx]				; compute _thread_t base
+  1838 000004C4 A3[08040000]              mov [tsa.data_current_thread], eax		; set current thread as 'idle'
+  1839 000004C9 897918                    mov [ecx + _thread_t.runlength], dword edi	; 1 cycle run then re-schedule
+  1840 000004CC C74120[1D040000]          mov [ecx + _thread_t.timer_handler], dword .ps_logic
+  1841 000004D3 89CC                      mov esp, ecx					; select idle thread stack
+  1842                                  						;
+  1843                                  						; TODO: some idle time counter
+  1844                                  .idling:					;
+  1845 000004D5 FB                        sti						; enable interrupts
+  1846 000004D6 F4                        hlt						; wait until some interrupts
+  1847 000004D7 EBFC                      jmp short .idling				; continue idling
+  1848                                  ;-----------------------------------------------------------------------------
+  1849                                  
+  1850                                  
+  1851                                  
+  1852                                  
+  1853                                  
+  1854                                    
+  1855                                    
+  1856                                  ;------------------------------------------------------------------[ DATA ]---
+  1857                                  
+  1858                                  
+  1859                                  ; RT-Engine Private Data
+  1860                                  ;-----------------------
+  1861                                  section .bss
+  1862 00000000 <res 00000800>-         threads: times 32 * _THREAD_BLOCKS_ resb _STACK_SIZE_
+  1863 00000000 <rept>             
+  1864 00020000 <res 00000800>          idle_thread: resb _STACK_SIZE_
+  1865                                  
+  1866                                  ; HRA Public Data
+  1867                                  ;----------------
+  1868                                  section .bss
+  1869 00020800 <res 00000008>          res64   hra.data_system_time
+  1870                                  
+  1871                                  ; HRA Public Data
+  1872                                  ;----------------
+  1873                                  ; res32 hra.realtime_queue, now embedded in code, see __irq_timer function
+  1874                                  
+  1875                                  
+  1876                                  ; PS Public Data
+  1877                                  ;---------------
+  1878                                  ;section .bss
+  1879                                  ;res32 ps.data_priority_ceiling, now embedded in code, see ps.set_priority
+  1880                                  
+  1881                                  ; PS Private DAta
+  1882                                  ;----------------
+  1883                                  ; res32 ps.priority_queue, now embedded in code, see __irq_timer function
+  1884                                  section .data
+  1885 00000000 FFFFFFFF<rept>          tsa.data_alloc_bitmap:	  times   _THREAD_BLOCKS_ dd 0xFFFFFFFF
+  1886                                  
+  1887                                  
+  1888                                  ; TSA Public Data
+  1889                                  ;----------------
+  1890                                  section .bss
+  1891 00020808 <res 00000004>          res32   tsa.data_acquired_threads
+  1892                                  ;res32 tsa.data_current_thread, now embedded in code, see __irq_timer function
+  1893 0002080C <res 00000004>          res32   tsa.data_stack_size
+  1894                                  section .data
+  1895 00000008 40000000                tsa.data_total_threads:	 dd      _THREAD_BLOCKS_ * 32
+  1896                                  ;-----------------------------------------------------------------[ /DATA ]---
+  1897                                  
+  1898                                  
+  1899                                  
+  1900                                  
+  1901                                  
+  1902                                  ;--------------------------------------------------------[ Symbol Exportation ]
+  1903                                  ;
+  1904                                  ; Components of the 'System' are:
+  1905                                  ;--------------------------------
+  1906                                  ; o Hard Realtime Allocator (HRA)
+  1907                                  ; o Priority Scheduler (PS)
+  1908                                  ; o Task Switcher Agent (TSA)
+  1909                                  ;
+  1910                                  ;
+  1911                                  ; Public Function / Data Summary
+  1912                                  ;-------------------------------
+  1913                                  ;
+  1914                                  ; HRA Functions:
+  1915                                  ; --------------
+  1916                                  vglobal hra.schedule
+  1917                              <1>  %ifndef %1.VID
+  1918                              <1>  %error "matching .VID not defined for vglobal:"
+  1919                              <1>  %error %1
+  1920                              <1>  %else
+  1921                              <1>  vglobal {%1}, {%1.VID}
+  1922                              <2>  %ifnnum %2
+  1923                              <2>  %error "seccond arg to vglobal must be a number"
+  1924                              <2>  %else
+  1925                              <2>  global ..@VOiD%2
+  1926                              <2>  ..@VOiD%2 equ %1
+  1927                              <2>  %endif
+  1928                              <1>  %endif
+  1929                                  vglobal hra.set_schedule_callback
+  1930                              <1>  %ifndef %1.VID
+  1931                              <1>  %error "matching .VID not defined for vglobal:"
+  1932                              <1>  %error %1
+  1933                              <1>  %else
+  1934                              <1>  vglobal {%1}, {%1.VID}
+  1935                              <2>  %ifnnum %2
+  1936                              <2>  %error "seccond arg to vglobal must be a number"
+  1937                              <2>  %else
+  1938                              <2>  global ..@VOiD%2
+  1939                              <2>  ..@VOiD%2 equ %1
+  1940                              <2>  %endif
+  1941                              <1>  %endif
+  1942                                  vglobal hra.unschedule
+  1943                              <1>  %ifndef %1.VID
+  1944                              <1>  %error "matching .VID not defined for vglobal:"
+  1945                              <1>  %error %1
+  1946                              <1>  %else
+  1947                              <1>  vglobal {%1}, {%1.VID}
+  1948                              <2>  %ifnnum %2
+  1949                              <2>  %error "seccond arg to vglobal must be a number"
+  1950                              <2>  %else
+  1951                              <2>  global ..@VOiD%2
+  1952                              <2>  ..@VOiD%2 equ %1
+  1953                              <2>  %endif
+  1954                              <1>  %endif
+  1955                                  ;
+  1956                                  ; HRA Public Data:
+  1957                                  ; ----------------
+  1958                                  vglobal hra.data_resolution
+  1959                              <1>  %ifndef %1.VID
+  1960                              <1>  %error "matching .VID not defined for vglobal:"
+  1961                              <1>  %error %1
+  1962                              <1>  %else
+  1963                              <1>  vglobal {%1}, {%1.VID}
+  1964                              <2>  %ifnnum %2
+  1965                              <2>  %error "seccond arg to vglobal must be a number"
+  1966                              <2>  %else
+  1967                              <2>  global ..@VOiD%2
+  1968                              <2>  ..@VOiD%2 equ %1
+  1969                              <2>  %endif
+  1970                              <1>  %endif
+  1971                                  vglobal hra.data_system_time
+  1972                              <1>  %ifndef %1.VID
+  1973                              <1>  %error "matching .VID not defined for vglobal:"
+  1974                              <1>  %error %1
+  1975                              <1>  %else
+  1976                              <1>  vglobal {%1}, {%1.VID}
+  1977                              <2>  %ifnnum %2
+  1978                              <2>  %error "seccond arg to vglobal must be a number"
+  1979                              <2>  %else
+  1980                              <2>  global ..@VOiD%2
+  1981                              <2>  ..@VOiD%2 equ %1
+  1982                              <2>  %endif
+  1983                              <1>  %endif
+  1984                                  ;
+  1985                                  ; PS Functions:
+  1986                                  ; -------------
+  1987                                  vglobal ps.schedule
+  1988                              <1>  %ifndef %1.VID
+  1989                              <1>  %error "matching .VID not defined for vglobal:"
+  1990                              <1>  %error %1
+  1991                              <1>  %else
+  1992                              <1>  vglobal {%1}, {%1.VID}
+  1993                              <2>  %ifnnum %2
+  1994                              <2>  %error "seccond arg to vglobal must be a number"
+  1995                              <2>  %else
+  1996                              <2>  global ..@VOiD%2
+  1997                              <2>  ..@VOiD%2 equ %1
+  1998                              <2>  %endif
+  1999                              <1>  %endif
+  2000                                  vglobal ps.set_priority
+  2001                              <1>  %ifndef %1.VID
+  2002                              <1>  %error "matching .VID not defined for vglobal:"
+  2003                              <1>  %error %1
+  2004                              <1>  %else
+  2005                              <1>  vglobal {%1}, {%1.VID}
+  2006                              <2>  %ifnnum %2
+  2007                              <2>  %error "seccond arg to vglobal must be a number"
+  2008                              <2>  %else
+  2009                              <2>  global ..@VOiD%2
+  2010                              <2>  ..@VOiD%2 equ %1
+  2011                              <2>  %endif
+  2012                              <1>  %endif
+  2013                                  vglobal ps.unschedule
+  2014                              <1>  %ifndef %1.VID
+  2015                              <1>  %error "matching .VID not defined for vglobal:"
+  2016                              <1>  %error %1
+  2017                              <1>  %else
+  2018                              <1>  vglobal {%1}, {%1.VID}
+  2019                              <2>  %ifnnum %2
+  2020                              <2>  %error "seccond arg to vglobal must be a number"
+  2021                              <2>  %else
+  2022                              <2>  global ..@VOiD%2
+  2023                              <2>  ..@VOiD%2 equ %1
+  2024                              <2>  %endif
+  2025                              <1>  %endif
+  2026                                  ;
+  2027                                  ; PS Public Data:
+  2028                                  ; ---------------
+  2029                                  vglobal ps.data_priority_ceiling
+  2030                              <1>  %ifndef %1.VID
+  2031                              <1>  %error "matching .VID not defined for vglobal:"
+  2032                              <1>  %error %1
+  2033                              <1>  %else
+  2034                              <1>  vglobal {%1}, {%1.VID}
+  2035                              <2>  %ifnnum %2
+  2036                              <2>  %error "seccond arg to vglobal must be a number"
+  2037                              <2>  %else
+  2038                              <2>  global ..@VOiD%2
+  2039                              <2>  ..@VOiD%2 equ %1
+  2040                              <2>  %endif
+  2041                              <1>  %endif
+  2042                                  ;
+  2043                                  ; TSA Functions:
+  2044                                  ; --------------
+  2045                                  vglobal tsa.acquire_thread
+  2046                              <1>  %ifndef %1.VID
+  2047                              <1>  %error "matching .VID not defined for vglobal:"
+  2048                              <1>  %error %1
+  2049                              <1>  %else
+  2050                              <1>  vglobal {%1}, {%1.VID}
+  2051                              <2>  %ifnnum %2
+  2052                              <2>  %error "seccond arg to vglobal must be a number"
+  2053                              <2>  %else
+  2054                              <2>  global ..@VOiD%2
+  2055                              <2>  ..@VOiD%2 equ %1
+  2056                              <2>  %endif
+  2057                              <1>  %endif
+  2058                                  vglobal tsa.release_thread
+  2059                              <1>  %ifndef %1.VID
+  2060                              <1>  %error "matching .VID not defined for vglobal:"
+  2061                              <1>  %error %1
+  2062                              <1>  %else
+  2063                              <1>  vglobal {%1}, {%1.VID}
+  2064                              <2>  %ifnnum %2
+  2065                              <2>  %error "seccond arg to vglobal must be a number"
+  2066                              <2>  %else
+  2067                              <2>  global ..@VOiD%2
+  2068                              <2>  ..@VOiD%2 equ %1
+  2069                              <2>  %endif
+  2070                              <1>  %endif
+  2071                                  vglobal tsa.set_initial_values
+  2072                              <1>  %ifndef %1.VID
+  2073                              <1>  %error "matching .VID not defined for vglobal:"
+  2074                              <1>  %error %1
+  2075                              <1>  %else
+  2076                              <1>  vglobal {%1}, {%1.VID}
+  2077                              <2>  %ifnnum %2
+  2078                              <2>  %error "seccond arg to vglobal must be a number"
+  2079                              <2>  %else
+  2080                              <2>  global ..@VOiD%2
+  2081                              <2>  ..@VOiD%2 equ %1
+  2082                              <2>  %endif
+  2083                              <1>  %endif
+  2084                                  vglobal tsa.yield
+  2085                              <1>  %ifndef %1.VID
+  2086                              <1>  %error "matching .VID not defined for vglobal:"
+  2087                              <1>  %error %1
+  2088                              <1>  %else
+  2089                              <1>  vglobal {%1}, {%1.VID}
+  2090                              <2>  %ifnnum %2
+  2091                              <2>  %error "seccond arg to vglobal must be a number"
+  2092                              <2>  %else
+  2093                              <2>  global ..@VOiD%2
+  2094                              <2>  ..@VOiD%2 equ %1
+  2095                              <2>  %endif
+  2096                              <1>  %endif
+  2097                                  ;
+  2098                                  ; TSA Public Data:
+  2099                                  ; ----------------
+  2100                                  vglobal tsa.data_total_threads
+  2101                              <1>  %ifndef %1.VID
+  2102                              <1>  %error "matching .VID not defined for vglobal:"
+  2103                              <1>  %error %1
+  2104                              <1>  %else
+  2105                              <1>  vglobal {%1}, {%1.VID}
+  2106                              <2>  %ifnnum %2
+  2107                              <2>  %error "seccond arg to vglobal must be a number"
+  2108                              <2>  %else
+  2109                              <2>  global ..@VOiD%2
+  2110                              <2>  ..@VOiD%2 equ %1
+  2111                              <2>  %endif
+  2112                              <1>  %endif
+  2113                                  vglobal tsa.data_acquired_threads
+  2114                              <1>  %ifndef %1.VID
+  2115                              <1>  %error "matching .VID not defined for vglobal:"
+  2116                              <1>  %error %1
+  2117                              <1>  %else
+  2118                              <1>  vglobal {%1}, {%1.VID}
+  2119                              <2>  %ifnnum %2
+  2120                              <2>  %error "seccond arg to vglobal must be a number"
+  2121                              <2>  %else
+  2122                              <2>  global ..@VOiD%2
+  2123                              <2>  ..@VOiD%2 equ %1
+  2124                              <2>  %endif
+  2125                              <1>  %endif
+  2126                                  vglobal tsa.data_current_thread
+  2127                              <1>  %ifndef %1.VID
+  2128                              <1>  %error "matching .VID not defined for vglobal:"
+  2129                              <1>  %error %1
+  2130                              <1>  %else
+  2131                              <1>  vglobal {%1}, {%1.VID}
+  2132                              <2>  %ifnnum %2
+  2133                              <2>  %error "seccond arg to vglobal must be a number"
+  2134                              <2>  %else
+  2135                              <2>  global ..@VOiD%2
+  2136                              <2>  ..@VOiD%2 equ %1
+  2137                              <2>  %endif
+  2138                              <1>  %endif
+  2139                                  vglobal tsa.data_stack_size
+  2140                              <1>  %ifndef %1.VID
+  2141                              <1>  %error "matching .VID not defined for vglobal:"
+  2142                              <1>  %error %1
+  2143                              <1>  %else
+  2144                              <1>  vglobal {%1}, {%1.VID}
+  2145                              <2>  %ifnnum %2
+  2146                              <2>  %error "seccond arg to vglobal must be a number"
+  2147                              <2>  %else
+  2148                              <2>  global ..@VOiD%2
+  2149                              <2>  ..@VOiD%2 equ %1
+  2150                              <2>  %endif
+  2151                              <1>  %endif
+  2152                                  ; SEM Functions:
+  2153                                  ; --------------
+  2154                                  vglobal sem.acquire_lock
+  2155                              <1>  %ifndef %1.VID
+  2156                              <1>  %error "matching .VID not defined for vglobal:"
+  2157                              <1>  %error %1
+  2158                              <1>  %else
+  2159                              <1>  vglobal {%1}, {%1.VID}
+  2160                              <2>  %ifnnum %2
+  2161                              <2>  %error "seccond arg to vglobal must be a number"
+  2162                              <2>  %else
+  2163                              <2>  global ..@VOiD%2
+  2164                              <2>  ..@VOiD%2 equ %1
+  2165                              <2>  %endif
+  2166                              <1>  %endif
+  2167                                  vglobal sem.release_lock
+  2168                              <1>  %ifndef %1.VID
+  2169                              <1>  %error "matching .VID not defined for vglobal:"
+  2170                              <1>  %error %1
+  2171                              <1>  %else
+  2172                              <1>  vglobal {%1}, {%1.VID}
+  2173                              <2>  %ifnnum %2
+  2174                              <2>  %error "seccond arg to vglobal must be a number"
+  2175                              <2>  %else
+  2176                              <2>  global ..@VOiD%2
+  2177                              <2>  ..@VOiD%2 equ %1
+  2178                              <2>  %endif
+  2179                              <1>  %endif
+  2180                                  vglobal sem.try_acquire_lock
+  2181                              <1>  %ifndef %1.VID
+  2182                              <1>  %error "matching .VID not defined for vglobal:"
+  2183                              <1>  %error %1
+  2184                              <1>  %else
+  2185                              <1>  vglobal {%1}, {%1.VID}
+  2186                              <2>  %ifnnum %2
+  2187                              <2>  %error "seccond arg to vglobal must be a number"
+  2188                              <2>  %else
+  2189                              <2>  global ..@VOiD%2
+  2190                              <2>  ..@VOiD%2 equ %1
+  2191                              <2>  %endif
+  2192                              <1>  %endif

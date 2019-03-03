@@ -1,0 +1,6 @@
+CVS Repository Layout
+---------------------
+
+ehex.asm	memory viewer sources
+makefile	set of rules to build the memory viewer, used by gnu-make
+scr		contains the theme screens

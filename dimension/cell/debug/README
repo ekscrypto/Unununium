@@ -1,0 +1,9 @@
+CVS Repository Layout
+---------------------
+
+bochs		additional debugging support when running under Bochs
+diable		general debugging support
+ehex		memory viewer/browser
+lanthane	redirectable level logging support
+lolalife	crash catcher/rescue system
+yttrium		bare logging system

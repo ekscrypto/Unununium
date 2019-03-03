@@ -1,0 +1,154 @@
+; Definitions for CPUID
+;
+;
+
+%define	__DEF_CPUID_386__	386
+%define	__DEF_CPUID_dunn0__	4356
+
+%define	__DEF_CPUID_486__	486	; most 80486s
+					; AMD 5x86
+					; Cyrix 5x86
+					
+%define	__DEF_CPUID_586__	586	; Intel P5, P54C, P55C, P24T
+					; NexGen Nx586
+					; Cyrix M1
+					; AMD K5
+					; Centaur C6, C2, C3
+					; Rise mP6
+					; Transmeta Crusoe TM3x00 and TM5x00
+					
+%define	__DEF_CPUID_686__	686	; Intel P6, P2, P3
+					; AMD K6
+					; Cyrix M2, VIA Cyrix III
+					
+%define	__DEF_CPUID_786__	786	; Intel Merced (IA-64)
+					; AMD K7
+ 
+
+
+%define	__DEF_CPUID_VENDOR_INTEL__	1
+%define	__DEF_CPUID_VENDOR_AMD__	2
+%define	__DEF_CPUID_VENDOR_CYRIX__	3
+%define	__DEF_CPUID_VENDOR_VIA__	4
+%define	__DEF_CPUID_VENDOR_RISE__	5
+%define	__DEF_CPUID_VENDOR_NEXGEN__	6
+%define	__DEF_CPUID_VENDOR_UMC__	7
+%define	__DEF_CPUID_VENDOR_CRUSOE__	8
+%define	__DEF_CPUID_VENDOR_OTHER__	9
+%define	__DEF_CPUID_VENDOR_NA__		0
+
+;; =============================================[ Type ID ]=========
+;;
+;;
+%define __undefinied_processor__	3
+%define __secondary_processor__		2
+%define __Overdrive_processor__		1
+%define __primary_processor__ 		0
+
+;; =============================================[ Model ID ]=========
+;;
+;;
+;; Hell, LOTS of info there :P
+
+; Intel 80486 
+%define __CPU_i80486DX_25_33__		0  
+%define	__CPU_i80486DX_50__		1
+%define	__CPU_i80486SX__ 		2
+%define	__CPU_i80486DX2__ 		3		
+%define	__CPU_i80486SL__ 		4
+%define	__CPU_i80486SX2__ 		5
+%define	__CPU_i80486DX2WB__ 		6
+%define	__CPU_i80486DX4__ 		7
+%define	__CPU_i80486DX4WB__ 		8
+
+; UMC 80486 
+%define __CPU_U5D__ 			9
+%define __CPU_U5S__ 			10
+; AMD 80486 
+%define __CPU_80486DX2__ 		11
+%define __CPU_80486DX2WB__ 		12
+%define __CPU_80486DX4__ 		13
+%define __CPU_80486DX4WB__ 		14
+%define __CPU_5x86__ 			15
+%define __CPU_5x86WB__ 			16
+
+; Cyrix 5x86 
+%define __CPU_5x86__ 			17
+
+; Cyrix MediaGX 
+%define __CPU_GX_m__			18
+
+; Intel P5-core 
+%define __CPU_P5_A_step__		19 
+%define __CPU_P5__ 			20
+%define __CPU_P54C__ 			21
+%define __CPU_P24T_Overdrive__ 		22
+%define __CPU_P55C__ 			23
+%define __CPU_P54C__ 			24
+%define __CPU_P55C_025__		25
+
+; NexGen Nx586 
+%define __CPU_Nx586__			26
+
+; Cyrix M1 
+%define __CPU_6x86__ 			27
+
+; Cyrix M2 
+%define __CPU_6x86MX__ 			28
+
+; VIA Cyrix III 
+%define __CPU_Cyrix_M2__		29
+%define __CPU_WinChip_C5A__  		30
+%define __CPU_WinChip_C5B__ 	 	31
+
+; AMD K5 
+%define __CPU_SSA5_PR75__		32
+%define __CPU_5k86_PR120__		33
+%define __CPU_5k86_PR166__ 		34
+%define __CPU_5k86_PR200__		35
+
+; AMD K6 
+%define __CPU_K6_030__			36
+%define __CPU_K6_025__ 			37
+%define __CPU_K6_2__ 			38
+%define __CPU_K6_III__ 			39
+%define __CPU_K6_2+__ 			40	; or K6-III+ (0.18 µm) 
+
+; Centaur 
+%define __CPU_C6__ 			41
+%define __CPU_C2__ 			42
+%define __CPU_C3__ 			43
+
+; Rise 
+%define __CPU_mP6_025__			44
+%define __CPU_mP6_018__			45
+
+; Transmeta 
+%define __CPU_Crusoe_TM3x00__ 		46	; and TM5x00 
+
+; Intel P6-core 
+%define __CPU_P6_A_step__ 		47
+%define __CPU_P6__ 			48
+%define __CPU_P2_028__			49
+%define __CPU_P2_025__			50
+%define __CPU_P2_L2od__			51
+%define __CPU_P3_025__			52
+%define __CPU_P3_018_L2od__		53
+%define __CPU_P3_018L2odMB__		54	; with 1 or 2 MB on-die L2 cache  
+%define __CPU_P3_013L2od__		55
+
+; AMD K7 
+%define __CPU_Athlon_025__		56
+%define __CPU_Athlon_018__		57
+%define __CPU_Duron_SF__		58
+%define __CPU_Athlon_TB__		59
+%define __CPU_Athlon_PM__		60
+%define __CPU_Duron_MG__		61
+
+; Intel P4-core 
+%define __CPU_P4_018__			62
+
+; Intel others
+%define __CPU_Itanium__			63
+%define __CPU_McKinley__		64
+
