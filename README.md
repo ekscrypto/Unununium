@@ -11,7 +11,7 @@ Throughout those generations, you are going to see a common trend:
 - One flat memory space shared by all processes/apps/*
 - No "Kernel" per say, only an agglomeration of "cells" or modules together forming the basis of the system -- In our lingo we referred to this as a "VoID Kernel" since there wasn't any big or small monolithic controlling everything.
 
-Our intent back in the day was to build a system which could reload any part of itself, so if you wanted to reload a newer version of the file system drivers you could do so without rebooting.
+Our intent back in the day was to build a system which could reload any part of itself, so if you wanted to reload a newer version of the file system drivers you could do so without rebooting.  This was proven as possible but never really implemented officially in any of the modules.
 
 Most generations were able to allocate memory (in some capacity or another), read keyboard input keys, display stuff on the screen.  Somewhere in there you will also find some minimal 3D library, a Ext2FS implementation, some 3Com network card driver, a SoundBlaster 16 sound card driver, a minimal shell, some games, etc.
 
